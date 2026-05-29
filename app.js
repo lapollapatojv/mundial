@@ -71,6 +71,12 @@ const adminPassword = document.getElementById("admin-password");
 const formAdminCreateGroup = document.getElementById("form-admin-create-group");
 const adminNewGroupName = document.getElementById("admin-new-group-name");
 const adminNewGroupFee = document.getElementById("admin-new-group-fee");
+const adminNewGroupDist = document.getElementById("admin-new-group-dist");
+const adminNewGroupWhatsapp = document.getElementById("admin-new-group-whatsapp");
+
+const adminSelectUserGroup = document.getElementById("admin-select-user-group");
+const adminUsersList = document.getElementById("admin-users-list");
+const adminGroupJoinSelf = document.getElementById("admin-group-join-self");
 
 // Inicialización de la Aplicación
 document.addEventListener("DOMContentLoaded", () => {
@@ -154,6 +160,11 @@ function setupEventListeners() {
   btnNavDashboard.addEventListener("click", () => switchView("dashboard"));
   btnNavPredictions.addEventListener("click", () => switchView("predictions"));
   btnNavAdmin.addEventListener("click", () => switchView("admin"));
+
+  // Cambiar grupo de participantes en panel admin
+  adminSelectUserGroup.addEventListener("change", () => {
+    renderAdminUsersList();
+  });
   
   // Salir
   btnLogout.addEventListener("click", () => {
@@ -282,14 +293,18 @@ function setupEventListeners() {
     e.preventDefault();
     const name = adminNewGroupName.value.trim();
     const fee = parseFloat(adminNewGroupFee.value) || 0;
+    const potDist = adminNewGroupDist ? adminNewGroupDist.value : "1st";
+    const whatsappLink = adminNewGroupWhatsapp ? adminNewGroupWhatsapp.value.trim() : "";
 
     if (!name) {
       alert("Por favor ingresa un nombre para el grupo.");
       return;
     }
 
+    const joinSelf = adminGroupJoinSelf ? adminGroupJoinSelf.checked : true;
+
     // Crear el grupo
-    const newGroup = await createGroup(name, fee, "lapollapatojv@gmail.com");
+    const newGroup = await createGroup(name, fee, "lapollapatojv@gmail.com", joinSelf, potDist, whatsappLink);
 
     // Rellenar dropdowns de grupo de login/registro
     populateGroupsDropdown();
@@ -402,40 +417,42 @@ function updateHeaderUI() {
     // Mostrar u ocultar el botón de admin de acuerdo al correo
     if (currentUser.email === "lapollapatojv@gmail.com") {
       btnNavAdmin.classList.remove("d-none");
-      
-      // Si el administrador está logueado, permitirle cambiar de grupo mediante un select en la cabecera
-      if (state.groups.length === 0) {
-        groupDisplayBadge.textContent = "Sin grupos";
-      } else {
-        let selectHTML = `<select id="header-group-select" style="background: var(--black); color: var(--accent); border: 2px solid var(--accent); padding: 2px 6px; font-family: var(--font-comic); font-weight: bold; font-size: 0.85rem; border-radius: 6px; cursor: pointer; outline: none;">`;
-        state.groups.forEach(g => {
-          const selected = g.id === currentGroupId ? "selected" : "";
-          selectHTML += `<option value="${g.id}" ${selected}>🎟️ ${g.name}</option>`;
-        });
-        selectHTML += `</select>`;
-        groupDisplayBadge.innerHTML = selectHTML;
-        
-        // Agregar listener para cambiar de grupo dinámicamente
-        const selectElem = document.getElementById("header-group-select");
-        if (selectElem) {
-          selectElem.addEventListener("change", (e) => {
-            const newGroupId = e.target.value;
-            currentGroupId = newGroupId;
-            localStorage.setItem("session_group_id", newGroupId);
-            
-            // Refrescar el header y las vistas activas
-            updateHeaderUI();
-            if (!viewDashboard.classList.contains("d-none")) {
-              renderDashboard();
-            } else if (!viewPredictions.classList.contains("d-none")) {
-              renderPredictions();
-            }
-          });
-        }
-      }
     } else {
       btnNavAdmin.classList.add("d-none");
-      groupDisplayBadge.textContent = group ? `🎟️ ${group.name}` : "";
+    }
+
+    const userGroups = currentUser.email === "lapollapatojv@gmail.com" 
+      ? state.groups 
+      : state.groups.filter(g => currentUser.groupIds && currentUser.groupIds.includes(g.id));
+
+    if (userGroups.length > 1) {
+      let selectHTML = `<select id="header-group-select" style="background: var(--black); color: var(--accent); border: 2px solid var(--accent); padding: 2px 6px; font-family: var(--font-comic); font-weight: bold; font-size: 0.85rem; border-radius: 6px; cursor: pointer; outline: none;">`;
+      userGroups.forEach(g => {
+        const selected = g.id === currentGroupId ? "selected" : "";
+        selectHTML += `<option value="${g.id}" ${selected}>🎟️ ${g.name}</option>`;
+      });
+      selectHTML += `</select>`;
+      groupDisplayBadge.innerHTML = selectHTML;
+      
+      // Agregar listener para cambiar de grupo dinámicamente
+      const selectElem = document.getElementById("header-group-select");
+      if (selectElem) {
+        selectElem.addEventListener("change", (e) => {
+          const newGroupId = e.target.value;
+          currentGroupId = newGroupId;
+          localStorage.setItem("session_group_id", newGroupId);
+          
+          // Refrescar el header y las vistas activas
+          updateHeaderUI();
+          if (!viewDashboard.classList.contains("d-none")) {
+            renderDashboard();
+          } else if (!viewPredictions.classList.contains("d-none")) {
+            renderPredictions();
+          }
+        });
+      }
+    } else {
+      groupDisplayBadge.textContent = group ? `🎟️ ${group.name}` : "Sin grupos";
     }
 
     // Compartir grupo info en el dashboard sidebar
@@ -500,6 +517,40 @@ function renderDashboard() {
   document.getElementById("pot-members-count").textContent = potDetails.membersCount;
   document.getElementById("pot-fee-display").textContent = `Bs. ${potDetails.entryFee}`;
 
+  // Reparto de Premios dinámico
+  const breakdownDiv = document.getElementById("pot-distribution-breakdown");
+  if (breakdownDiv) {
+    breakdownDiv.innerHTML = "";
+    if (potDetails.potDist === "1st") {
+      breakdownDiv.innerHTML = `<div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>`;
+    } else if (potDetails.potDist === "1st-2nd") {
+      breakdownDiv.innerHTML = `
+        <div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>
+        <div>🥈 2do Lugar: Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}</div>
+      `;
+    } else if (potDetails.potDist === "1st-2nd-3rd") {
+      breakdownDiv.innerHTML = `
+        <div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>
+        <div>🥈 2do Lugar: Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}</div>
+        <div>🥉 3er Lugar: Bs. ${(potDetails.breakdown["3rd"] || 0).toFixed(2)}</div>
+      `;
+    }
+  }
+
+  // Vincular enlace de WhatsApp del grupo si existe
+  const state = getAppState();
+  const group = state.groups.find(g => g.id === currentGroupId);
+  const whatsappContainer = document.getElementById("whatsapp-link-container");
+  const whatsappHref = document.getElementById("group-whatsapp-href");
+  if (whatsappContainer && whatsappHref) {
+    if (group && group.whatsappLink) {
+      whatsappHref.href = group.whatsappLink;
+      whatsappContainer.classList.remove("d-none");
+    } else {
+      whatsappContainer.classList.add("d-none");
+    }
+  }
+
   // Actualizar Tabla de Clasificación
   const tbody = document.getElementById("leaderboard-tbody");
   tbody.innerHTML = "";
@@ -555,7 +606,7 @@ function renderPredictions() {
   if (!currentUser) return;
 
   const state = getAppState();
-  const userPreds = state.predictions[currentUser.email] || {};
+  const userPreds = state.predictions[`${currentUser.email}||${currentGroupId}`] || state.predictions[currentUser.email] || {};
   const container = document.getElementById("matches-tickets-container");
   const tabsBar = document.getElementById("predictions-tabs-bar");
   
@@ -792,9 +843,9 @@ async function saveAllPredictionsFromUI(silent = false) {
       const valB = container.querySelector(".pred-b").value;
 
       if (valA === "" || valB === "") {
-        promises.push(saveUserPrediction(currentUser.email, matchId, null, null));
+        promises.push(saveUserPrediction(currentUser.email, matchId, null, null, currentGroupId));
       } else {
-        promises.push(saveUserPrediction(currentUser.email, matchId, parseInt(valA), parseInt(valB)));
+        promises.push(saveUserPrediction(currentUser.email, matchId, parseInt(valA), parseInt(valB), currentGroupId));
         savedCount++;
       }
     } else {
@@ -807,20 +858,43 @@ async function saveAllPredictionsFromUI(silent = false) {
   }
 
   if (!isSilent) {
+    // Verificar si faltan pronósticos por completar únicamente en la pestaña/grupo actual
+    let tabIncomplete = 0;
+    scoreContainers.forEach(container => {
+      const matchId = container.getAttribute("data-match-id");
+      const match = state.matches.find(m => m.id === matchId);
+      if (match && !isMatchLocked(match) && match.status !== "jugado") {
+        const valA = container.querySelector(".pred-a").value;
+        const valB = container.querySelector(".pred-b").value;
+        if (valA === "" || valB === "") {
+          tabIncomplete++;
+        }
+      }
+    });
+
     // Mostrar alerta de éxito estilo Comic
     const alertBox = document.getElementById("predictions-alert");
-    alertBox.className = "alert-comic success";
-    let msg = `¡Tus pronósticos se han guardado! (${savedCount} marcadores registrados en esta pestaña)`;
-    if (skippedCount > 0) {
-      msg += ` [Se omitieron ${skippedCount} partidos cerrados]`;
+    if (alertBox) {
+      alertBox.className = "alert-comic success";
+      let msg = `¡Tus pronósticos se han guardado con éxito! (${savedCount} marcadores registrados en esta pestaña)`;
+      if (skippedCount > 0) {
+        msg += ` [Se omitieron ${skippedCount} partidos cerrados]`;
+      }
+      alertBox.textContent = msg;
+      alertBox.classList.remove("d-none");
+      
+      // Auto desvanecer alerta y refrescar vista
+      setTimeout(() => {
+        alertBox.className = "alert-comic success d-none";
+      }, 4000);
     }
-    alertBox.textContent = msg;
-    alertBox.classList.remove("d-none");
-    
-    // Auto desvanecer alerta y refrescar vista
-    setTimeout(() => {
-      alertBox.className = "alert-comic success d-none";
-    }, 4000);
+
+    // Confirmación nativa de guardado
+    if (tabIncomplete > 0) {
+      alert(`⚠️ Nota: Tienes ${tabIncomplete} partido(s) pendiente(s) de pronosticar en esta sección (${activePredictionsTab}). Si no completas los resultados, el partido quedará sin resultado y no sumará puntos.`);
+    } else {
+      alert("¡Tus pronósticos se han guardado con éxito!");
+    }
 
     // Volver a renderizar para fijar estilos
     renderPredictions();
@@ -871,6 +945,32 @@ function fillRandomPredictions() {
 function renderAdmin() {
   const state = getAppState();
 
+  // Rellenar selector de grupos para administración de usuarios
+  if (adminSelectUserGroup) {
+    const previousVal = adminSelectUserGroup.value;
+    adminSelectUserGroup.innerHTML = "";
+    
+    if (state.groups.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No hay grupos creados.";
+      adminSelectUserGroup.appendChild(opt);
+    } else {
+      state.groups.forEach(g => {
+        const opt = document.createElement("option");
+        opt.value = g.id;
+        opt.textContent = g.name;
+        if (g.id === previousVal) {
+          opt.selected = true;
+        }
+        adminSelectUserGroup.appendChild(opt);
+      });
+    }
+  }
+
+  // Renderizar lista de usuarios del grupo seleccionado
+  renderAdminUsersList();
+
   // A. RENDERIZAR LISTADO DE GRUPOS EXISTENTES
   const groupsContainer = document.getElementById("admin-groups-list");
   if (groupsContainer) {
@@ -891,19 +991,35 @@ function renderAdmin() {
         row.style.borderBottom = "1px dashed rgba(255, 255, 255, 0.1)";
 
         row.innerHTML = `
-          <div style="flex: 2; min-width: 180px;">
-            <input type="text" class="comic-input edit-group-name" value="${group.name}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
-          </div>
-          <div style="width: 100px;">
-            <input type="number" class="comic-input edit-group-fee" min="0" value="${group.entryFee}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
-          </div>
-          <div style="display: flex; gap: 5px;">
-            <button class="comic-btn comic-btn-primary btn-update-group" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px;">
-              Guardar 💾
-            </button>
-            <button class="comic-btn comic-btn-secondary btn-delete-group" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px;">
-              Eliminar 🗑️
-            </button>
+          <div style="flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;">
+            <div style="flex: 2; min-width: 180px;">
+              <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Nombre del Grupo</span>
+              <input type="text" class="comic-input edit-group-name" value="${group.name}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+            </div>
+            <div style="width: 90px;">
+              <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Cuota</span>
+              <input type="number" class="comic-input edit-group-fee" min="0" value="${group.entryFee}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+            </div>
+            <div style="width: 130px;">
+              <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Premios</span>
+              <select class="comic-input edit-group-dist" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+                <option value="1st" ${group.potDist === '1st' ? 'selected' : ''}>🥇 100% 1er</option>
+                <option value="1st-2nd" ${group.potDist === '1st-2nd' ? 'selected' : ''}>🥈 70% / 30%</option>
+                <option value="1st-2nd-3rd" ${group.potDist === '1st-2nd-3rd' ? 'selected' : ''}>🥉 60% / 30% / 10%</option>
+              </select>
+            </div>
+            <div style="flex: 2; min-width: 180px;">
+              <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Enlace WhatsApp</span>
+              <input type="url" class="comic-input edit-group-whatsapp" value="${group.whatsappLink || ''}" placeholder="https://chat.whatsapp.com/..." style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+            </div>
+            <div style="display: flex; gap: 5px;">
+              <button class="comic-btn comic-btn-primary btn-update-group" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px; height: 38px;">
+                Guardar 💾
+              </button>
+              <button class="comic-btn comic-btn-secondary btn-delete-group" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px; height: 38px;">
+                Eliminar 🗑️
+              </button>
+            </div>
           </div>
         `;
 
@@ -911,13 +1027,15 @@ function renderAdmin() {
         row.querySelector(".btn-update-group").addEventListener("click", async () => {
           const newName = row.querySelector(".edit-group-name").value.trim();
           const newFee = parseFloat(row.querySelector(".edit-group-fee").value) || 0;
+          const newPotDist = row.querySelector(".edit-group-dist").value;
+          const newWhatsappLink = row.querySelector(".edit-group-whatsapp").value.trim();
 
           if (!newName) {
             alert("El nombre del grupo no puede estar vacío.");
             return;
           }
 
-          await updateGroup(group.id, newName, newFee);
+          await updateGroup(group.id, newName, newFee, newPotDist, newWhatsappLink);
           
           // Refrescar selectores de Auth
           populateGroupsDropdown();
@@ -1068,5 +1186,120 @@ function renderAdmin() {
     });
 
     container.appendChild(card);
+  });
+}
+
+// Renderizar lista de usuarios/participantes del grupo seleccionado para editar/eliminar
+function renderAdminUsersList() {
+  if (!adminUsersList) return;
+  adminUsersList.innerHTML = "";
+
+  const state = getAppState();
+  const groupId = adminSelectUserGroup ? adminSelectUserGroup.value : "";
+  if (!groupId) {
+    adminUsersList.innerHTML = `<p class="empty-state">Selecciona un grupo para listar sus participantes.</p>`;
+    return;
+  }
+
+  // Filtrar los usuarios que pertenecen a este grupo
+  const groupUsers = state.users.filter(u => u.groupIds && u.groupIds.includes(groupId));
+
+  if (groupUsers.length === 0) {
+    adminUsersList.innerHTML = `<p class="empty-state">No hay participantes registrados en este grupo.</p>`;
+    return;
+  }
+
+  groupUsers.forEach(user => {
+    // No permitir eliminar al administrador principal desde aquí (seguridad básica)
+    const isAdminUser = user.email === "lapollapatojv@gmail.com";
+
+    const row = document.createElement("div");
+    row.className = "admin-user-row";
+    row.style.display = "flex";
+    row.style.flexWrap = "wrap";
+    row.style.gap = "10px";
+    row.style.alignItems = "center";
+    row.style.marginBottom = "15px";
+    row.style.paddingBottom = "10px";
+    row.style.borderBottom = "1px dashed rgba(255, 255, 255, 0.1)";
+
+    row.innerHTML = `
+      <div style="flex: 2; min-width: 180px;">
+        <span style="font-size: 0.85rem; color: var(--gray); display: block;">Correo</span>
+        <strong style="font-size: 0.9rem; word-break: break-all;">${user.email}</strong>
+      </div>
+      <div style="flex: 1.5; min-width: 130px;">
+        <span style="font-size: 0.85rem; color: var(--gray); display: block;">Apodo</span>
+        <input type="text" class="comic-input edit-user-nickname" value="${user.nickname}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+      </div>
+      <div style="flex: 1.5; min-width: 130px;">
+        <span style="font-size: 0.85rem; color: var(--gray); display: block;">Contraseña</span>
+        <input type="password" class="comic-input edit-user-password" value="" placeholder="Escribir para cambiar" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+      </div>
+      <div style="display: flex; gap: 5px; align-items: flex-end; padding-top: 15px;">
+        <button class="comic-btn comic-btn-primary btn-update-user" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px;">
+          Guardar 💾
+        </button>
+        <button class="comic-btn comic-btn-secondary btn-delete-user" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px;">
+          Remover ❌
+        </button>
+      </div>
+    `;
+
+    // Asignar evento de guardado
+    row.querySelector(".btn-update-user").addEventListener("click", async () => {
+      const newNickname = row.querySelector(".edit-user-nickname").value.trim();
+      const newPassword = row.querySelector(".edit-user-password").value.trim();
+
+      if (!newNickname) {
+        alert("El apodo del participante no puede estar vacío.");
+        return;
+      }
+
+      await updateUserInGroup(user.email, newNickname, newPassword);
+      row.querySelector(".edit-user-password").value = "";
+
+      // Feedback visual
+      const btn = row.querySelector(".btn-update-user");
+      btn.textContent = "Guardado ✔";
+      btn.style.backgroundColor = "var(--accent)";
+      btn.style.color = "var(--black)";
+      setTimeout(() => {
+        btn.textContent = "Guardar 💾";
+        btn.style.backgroundColor = "var(--primary)";
+        btn.style.color = "var(--black)";
+      }, 1200);
+
+      // Refrescar el Dashboard por si cambió su apodo
+      if (!viewDashboard.classList.contains("d-none")) {
+        renderDashboard();
+      }
+    });
+
+    // Asignar evento de remover
+    row.querySelector(".btn-delete-user").addEventListener("click", async () => {
+      const confirmMsg = isAdminUser 
+        ? `¿Estás seguro de que deseas dejar de participar en este grupo? Seguirás teniendo acceso como administrador pero no aparecerás en la tabla de clasificación.`
+        : `¿Estás seguro de que deseas remover a "${user.nickname}" (${user.email}) de este grupo? Esta acción borrará sus pronósticos en este grupo.`;
+
+      if (confirm(confirmMsg)) {
+        await removeUserFromGroup(user.email, groupId);
+        
+        // Si el admin se removió a sí mismo del grupo actual de la sesión, refrescar header
+        if (isAdminUser && currentGroupId === groupId) {
+          updateHeaderUI();
+        }
+
+        // Volver a renderizar
+        renderAdminUsersList();
+
+        // Refrescar el Dashboard
+        if (!viewDashboard.classList.contains("d-none")) {
+          renderDashboard();
+        }
+      }
+    });
+
+    adminUsersList.appendChild(row);
   });
 }

@@ -1001,3 +1001,162 @@ header {
   box-shadow: 2px 2px 0px var(--black);
   transform: scale(1.02);
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS (PANTALLAS VERTICALES / CELULARES)
+   ========================================================================== */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+
+  /* Header y Navegación */
+  header {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .brand {
+    justify-content: center;
+  }
+
+  .brand-text {
+    font-size: 1.6rem;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .nav-links .comic-btn {
+    flex: 1 1 calc(50% - 8px); /* Botones en 2 columnas */
+    font-size: 0.85rem;
+    padding: 10px 8px;
+    height: auto;
+  }
+
+  .user-badge {
+    width: 100%;
+    justify-content: center;
+    order: -1; /* El distintivo del usuario queda arriba de los botones */
+    margin-bottom: 4px;
+  }
+
+  /* Banners Generales */
+  .comic-banner {
+    font-size: 1.4rem;
+    padding: 8px 16px;
+    width: 100%;
+  }
+
+  /* Desplazamiento Horizontal Suave para Pestañas de Grupos */
+  .predictions-tabs-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .predictions-tabs-bar::-webkit-scrollbar {
+    display: none; /* Oculta scrollbar */
+  }
+  .predictions-tabs-bar .tab-btn {
+    flex: 0 0 auto;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+
+  /* Adaptación de Tickets de Estadio */
+  .ticket-stub, 
+  .ticket-divider {
+    display: none !important; /* Esconde el talón decorativo en móvil */
+  }
+
+  .ticket {
+    min-height: auto;
+    border-radius: 12px;
+  }
+
+  .ticket::after {
+    display: none !important; /* Quita muesca derecha */
+  }
+
+  .ticket-body {
+    padding: 15px;
+  }
+
+  /* Equipos y Marcadores */
+  .match-teams {
+    gap: 5px;
+  }
+
+  .team-container {
+    width: 38%;
+  }
+
+  .team-name {
+    font-size: 0.95rem; /* Letra más pequeña para evitar cortes */
+  }
+
+  .team-flag-img {
+    width: 20px;
+    height: 14px;
+    margin-bottom: 2px;
+  }
+
+  .score-inputs {
+    width: 24%;
+    gap: 4px;
+  }
+
+  .score-field {
+    width: 36px;
+    height: 36px;
+    font-size: 1.25rem;
+  }
+
+  .score-separator {
+    font-size: 1.2rem;
+  }
+
+  .btn-random-single {
+    padding: 2px 4px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .sticker-points {
+    right: 12px;
+    top: 8px;
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+
+  /* Admin Match Cards */
+  .admin-match-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .admin-match-scores {
+    justify-content: center;
+  }
+
+  /* Admin Users Row */
+  .admin-user-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-bottom: 15px;
+  }
+
+  .admin-user-row > div {
+    width: 100% !important;
+  }
+}

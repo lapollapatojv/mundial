@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>La Polla by patojv ⚽ - Entradas y Pronósticos del Mundial</title>
   <meta name="description" content="Participa en la polla del mundial con tus amigos, familiares y colegas de oficina. Pronostica marcadores, suma puntos y compite por el gran bote acumulado.">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=24">
+  <link rel="icon" type="image/png" href="favicon.png?v=1">
 </head>
 <body>
 
@@ -140,6 +141,21 @@
             <div>Participantes: <span id="pot-members-count">0</span></div>
             <div>Cuota de Entrada: <span id="pot-fee-display">Bs. 0</span></div>
           </div>
+          <!-- Reparto de Premios dinámico -->
+          <div id="pot-distribution-breakdown" style="margin-top: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.2); padding-top: 10px; font-size: 0.85rem; display: flex; justify-content: center; gap: 15px; color: var(--gray); font-weight: bold; flex-wrap: wrap;">
+          </div>
+        </div>
+
+        <!-- Aviso Legal y Enlace de WhatsApp -->
+        <div id="group-disclaimer-card" class="comic-card" style="margin: 15px 0; padding: 12px 15px; border-color: var(--accent); background: rgba(255, 193, 7, 0.05);">
+          <p style="margin: 0; font-size: 0.85rem; line-height: 1.4; color: var(--gray); text-align: center;">
+            ⚠️ <strong>Aviso Legal:</strong> La plataforma no cobra ni se responsabiliza del pago del premio. Todo es responsabilidad y de mutuo acuerdo entre los participantes del grupo.
+          </p>
+          <div id="whatsapp-link-container" class="d-none" style="margin-top: 10px; text-align: center;">
+            <a id="group-whatsapp-href" href="#" target="_blank" class="comic-btn comic-btn-outline" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 0.85rem; border-color: #25D366; color: #25D366; text-decoration: none;">
+              💬 Grupo de WhatsApp de la Polla
+            </a>
+          </div>
         </div>
 
         <div class="comic-card">
@@ -220,7 +236,7 @@
         <div>
           <h2 class="comic-banner primary" style="margin-bottom: 5px;">TUS PRONÓSTICOS</h2>
           <p style="color: var(--gray); font-size: 0.9rem; margin-top: 5px;">
-            Introduce tus marcadores para los partidos. ¡Guarda tus cambios antes de que comience cada partido!
+            Introduce tus marcadores para los partidos. Puedes agregarlos y modificarlos <strong>hasta 30 minutos antes</strong> de cada encuentro. ¡No olvides guardar tus cambios!
           </p>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -276,8 +292,26 @@
             <label class="comic-label" for="admin-new-group-fee" style="font-size: 0.8rem; margin-bottom: 4px;">Cuota (Bs.)</label>
             <input type="number" id="admin-new-group-fee" class="comic-input" min="0" value="10" required style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
           </div>
-          <div style="flex: 1; min-width: 150px;">
-            <button type="submit" class="comic-btn comic-btn-accent comic-btn-block" style="padding: 10px 5px; font-size: 0.95rem; border-width: 2px;">
+          <div style="flex: 1.5; min-width: 180px;">
+            <label class="comic-label" for="admin-new-group-dist" style="font-size: 0.8rem; margin-bottom: 4px;">Premios</label>
+            <select id="admin-new-group-dist" class="comic-input comic-select" style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+              <option value="1st">🥇 100% al 1er Lugar</option>
+              <option value="1st-2nd">🥈 70% al 1ro / 30% al 2do</option>
+              <option value="1st-2nd-3rd">🥉 60% al 1ro / 30% al 2do / 10% al 3ro</option>
+            </select>
+          </div>
+          <div style="flex: 2; min-width: 180px;">
+            <label class="comic-label" for="admin-new-group-whatsapp" style="font-size: 0.8rem; margin-bottom: 4px;">Enlace WhatsApp (Opcional)</label>
+            <input type="url" id="admin-new-group-whatsapp" class="comic-input" placeholder="https://chat.whatsapp.com/..." style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+          </div>
+          <div style="flex: 1 1 100%; display: flex; align-items: center; gap: 8px; margin-top: 5px;">
+            <input type="checkbox" id="admin-group-join-self" checked style="width: 18px; height: 18px; cursor: pointer;">
+            <label for="admin-group-join-self" class="comic-label" style="font-size: 0.85rem; color: var(--white); margin-bottom: 0; cursor: pointer; text-transform: none;">
+              Participar en este grupo (competir y aparecer en la tabla de clasificación)
+            </label>
+          </div>
+          <div style="flex: 1 1 100%; display: flex; justify-content: flex-end; margin-top: 10px;">
+            <button type="submit" class="comic-btn comic-btn-accent" style="padding: 10px 20px; font-size: 0.95rem; border-width: 2px;">
               Crear Grupo 🏆
             </button>
           </div>
@@ -291,6 +325,24 @@
         </h3>
         <div id="admin-groups-list">
           <!-- Renderizado dinámico -->
+        </div>
+      </div>
+
+      <!-- Sección: Gestionar Participantes por Grupo -->
+      <div class="comic-card" style="margin-bottom: 25px;">
+        <h3 class="comic-label" style="font-size: 1.2rem; margin-bottom: 20px; border-bottom: 2px solid var(--black); padding-bottom: 10px;">
+          👥 GESTIONAR PARTICIPANTES POR GRUPO
+        </h3>
+        
+        <div style="margin-bottom: 20px;">
+          <label class="comic-label" for="admin-select-user-group" style="font-size: 0.85rem; margin-bottom: 4px;">Seleccionar Grupo para Ver Usuarios</label>
+          <select id="admin-select-user-group" class="comic-input" style="padding: 8px 12px; font-size: 0.9rem;">
+            <!-- Renderizado dinámico -->
+          </select>
+        </div>
+
+        <div id="admin-users-list">
+          <!-- Renderizado dinámico de usuarios del grupo seleccionado -->
         </div>
       </div>
 
@@ -309,7 +361,7 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="data.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="data.js?v=24"></script>
+  <script src="app.js?v=24"></script>
 </body>
 </html>

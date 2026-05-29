@@ -282,6 +282,20 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
+function parseGroupName(dbName) {
+  if (!dbName) return { name: "", potDist: "1st", whatsappLink: "" };
+  const parts = dbName.split("||");
+  return {
+    name: parts[0] ? parts[0].trim() : "",
+    potDist: parts[1] ? parts[1].trim() : "1st",
+    whatsappLink: parts[2] ? parts[2].trim() : ""
+  };
+}
+
+function formatGroupName(name, potDist, whatsappLink) {
+  return `${name.trim()}||${potDist || "1st"}||${(whatsappLink || "").trim()}`;
+}
+
 // Sincronizar el estado en memoria y LocalStorage con la base de datos de Supabase en la nube
 async function syncStateFromSupabase() {
   const client = getSupabaseClient();
@@ -316,29 +330,66 @@ async function syncStateFromSupabase() {
 
     // Sincronizar grupos
     if (dbGroups && dbGroups.length > 0) {
-      state.groups = dbGroups.map(g => ({
-        id: g.id,
-        name: g.name,
-        entryFee: parseFloat(g.entry_fee) || 0,
-        creator: g.creator
-      }));
+      state.groups = dbGroups.map(g => {
+        const parsed = parseGroupName(g.name);
+        return {
+          id: g.id,
+          name: parsed.name,
+          entryFee: parseFloat(g.entry_fee) || 0,
+          creator: g.creator,
+          potDist: parsed.potDist,
+          whatsappLink: parsed.whatsappLink
+        };
+      });
     }
 
     // Sincronizar usuarios
     if (dbUsers) {
-      state.users = dbUsers.map(u => {
-        const groupIds = dbUserGroups 
-          ? dbUserGroups.filter(ug => ug.email === u.email).map(ug => ug.group_id) 
-          : [];
-        return {
-          email: u.email,
-          nickname: u.nickname,
-          password: u.password || "",
-          groupIds: groupIds
-        };
+      const userMap = {};
+      dbUsers.forEach(u => {
+        const parts = u.email.split("||");
+        const cleanEmail = parts[0].trim().toLowerCase();
+        const userGroupId = parts[1] || "";
+        
+        if (!userMap[cleanEmail]) {
+          userMap[cleanEmail] = {
+            email: cleanEmail,
+            nickname: u.nickname,
+            password: u.password || "",
+            groupIds: []
+          };
+        }
+        
+        if (userGroupId && !userMap[cleanEmail].groupIds.includes(userGroupId)) {
+          userMap[cleanEmail].groupIds.push(userGroupId);
+        }
       });
 
-      // Asegurar que el admin siempre exista en memoria y participe en todos los grupos
+      if (dbUserGroups) {
+        dbUserGroups.forEach(ug => {
+          const parts = ug.email.split("||");
+          const cleanEmail = parts[0].trim().toLowerCase();
+          const userGroupId = parts[1] || ug.group_id;
+          
+          if (!userMap[cleanEmail]) {
+            const dbU = dbUsers ? dbUsers.find(x => x.email.split("||")[0].trim().toLowerCase() === cleanEmail) : null;
+            userMap[cleanEmail] = {
+              email: cleanEmail,
+              nickname: dbU ? dbU.nickname : (cleanEmail === "lapollapatojv@gmail.com" ? "Organizador (Admin)" : cleanEmail.split("@")[0]),
+              password: dbU ? dbU.password || "" : "",
+              groupIds: []
+            };
+          }
+          
+          if (userGroupId && !userMap[cleanEmail].groupIds.includes(userGroupId)) {
+            userMap[cleanEmail].groupIds.push(userGroupId);
+          }
+        });
+      }
+
+      state.users = Object.values(userMap);
+
+      // Asegurar que el admin siempre exista en memoria
       let admin = state.users.find(u => u.email === "lapollapatojv@gmail.com");
       if (!admin) {
         admin = {
@@ -349,11 +400,6 @@ async function syncStateFromSupabase() {
         };
         state.users.push(admin);
       }
-      state.groups.forEach(g => {
-        if (!admin.groupIds.includes(g.id)) {
-          admin.groupIds.push(g.id);
-        }
-      });
     }
 
     // Sincronizar pronósticos
@@ -435,7 +481,7 @@ function getAppState() {
     parsedState = defaultState;
   }
 
-  // Asegurar que el administrador siempre exista y esté registrado en todos los grupos existentes
+  // Asegurar que el administrador siempre exista
   let admin = parsedState.users.find(u => u.email === "lapollapatojv@gmail.com");
   if (!admin) {
     admin = {
@@ -446,11 +492,6 @@ function getAppState() {
     };
     parsedState.users.push(admin);
   }
-  parsedState.groups.forEach(g => {
-    if (!admin.groupIds.includes(g.id)) {
-      admin.groupIds.push(g.id);
-    }
-  });
 
   return parsedState;
 }
@@ -519,27 +560,25 @@ async function authenticateUser(email, nickname, groupId, password) {
 }
 
 // Crear un nuevo grupo
-async function createGroup(name, entryFee, creatorEmail) {
+async function createGroup(name, entryFee, creatorEmail, joinSelf = true, potDist = "1st", whatsappLink = "") {
   const state = getAppState();
   const newId = "g_" + Date.now();
   const newGroup = {
     id: newId,
     name: name.trim(),
     entryFee: parseFloat(entryFee) || 0,
-    creator: creatorEmail
+    creator: creatorEmail,
+    potDist: potDist,
+    whatsappLink: whatsappLink.trim()
   };
   state.groups.push(newGroup);
   
-  // Agregar creador al grupo automáticamente
-  const user = state.users.find(u => u.email === creatorEmail);
-  if (user && !user.groupIds.includes(newId)) {
-    user.groupIds.push(newId);
-  }
-
-  // Asegurar que el admin (lapollapatojv@gmail.com) también participe en el grupo
-  const admin = state.users.find(u => u.email === "lapollapatojv@gmail.com");
-  if (admin && !admin.groupIds.includes(newId)) {
-    admin.groupIds.push(newId);
+  // Agregar creador al grupo automáticamente sólo si joinSelf es verdadero
+  if (joinSelf) {
+    const user = state.users.find(u => u.email === creatorEmail);
+    if (user && !user.groupIds.includes(newId)) {
+      user.groupIds.push(newId);
+    }
   }
 
   saveAppState(state);
@@ -549,18 +588,19 @@ async function createGroup(name, entryFee, creatorEmail) {
     try {
       await client.from('groups').insert({
         id: newId,
-        name: newGroup.name,
+        name: formatGroupName(newGroup.name, potDist, whatsappLink),
         entry_fee: newGroup.entryFee,
         creator: creatorEmail
       });
-      await client.from('user_groups').upsert({
-        email: creatorEmail,
-        group_id: newId
-      });
-      // Asegurar registro de user_groups en Supabase para el admin si no es el creador
-      if (creatorEmail !== "lapollapatojv@gmail.com") {
+      if (joinSelf) {
+        const dbEmail = `${creatorEmail}||${newId}`;
+        await client.from('users').upsert({
+          email: dbEmail,
+          nickname: "Organizador (Admin)",
+          password: "Jambalaya.4910519"
+        });
         await client.from('user_groups').upsert({
-          email: "lapollapatojv@gmail.com",
+          email: dbEmail,
           group_id: newId
         });
       }
@@ -573,18 +613,19 @@ async function createGroup(name, entryFee, creatorEmail) {
 }
 
 // Guardar o actualizar un pronóstico de un usuario
-async function saveUserPrediction(email, matchId, predA, predB) {
+async function saveUserPrediction(email, matchId, predA, predB, groupId) {
   const state = getAppState();
   email = email.trim().toLowerCase();
+  const emailKey = groupId ? `${email}||${groupId}` : email;
 
-  if (!state.predictions[email]) {
-    state.predictions[email] = {};
+  if (!state.predictions[emailKey]) {
+    state.predictions[emailKey] = {};
   }
 
   const pA = predA === null || isNaN(parseInt(predA)) ? null : parseInt(predA);
   const pB = predB === null || isNaN(parseInt(predB)) ? null : parseInt(predB);
 
-  state.predictions[email][matchId] = {
+  state.predictions[emailKey][matchId] = {
     predA: pA,
     predB: pB
   };
@@ -594,8 +635,18 @@ async function saveUserPrediction(email, matchId, predA, predB) {
   const client = getSupabaseClient();
   if (client) {
     try {
+      // Upsert de usuario previo en Supabase para satisfacer la constraint de foreign key
+      if (groupId) {
+        const user = state.users.find(u => u.email === email);
+        await client.from('users').upsert({
+          email: emailKey,
+          nickname: user ? user.nickname : email.split("@")[0],
+          password: user ? user.password || "" : ""
+        });
+      }
+
       await client.from('predictions').upsert({
-        email: email,
+        email: emailKey,
         match_id: matchId,
         pred_a: pA,
         pred_b: pB,
@@ -773,7 +824,7 @@ function getGroupLeaderboard(groupId) {
     let totalPoints = 0;
     let exactMatches = 0;
     let trendMatches = 0;
-    const userPreds = state.predictions[user.email] || {};
+    const userPreds = state.predictions[`${user.email}||${groupId}`] || state.predictions[user.email] || {};
 
     state.matches.forEach(match => {
       if (match.status === "jugado") {
@@ -808,32 +859,50 @@ function getGroupLeaderboard(groupId) {
 function getGroupPotDetails(groupId) {
   const state = getAppState();
   const group = state.groups.find(g => g.id === groupId);
-  if (!group) return { totalPot: 0, membersCount: 0, entryFee: 0 };
+  if (!group) return { totalPot: 0, membersCount: 0, entryFee: 0, potDist: "1st", breakdown: {} };
 
   const membersCount = state.users.filter(u => u.groupIds.includes(groupId)).length;
   const totalPot = membersCount * group.entryFee;
+  const potDist = group.potDist || "1st";
+
+  // Calcular reparto de premios
+  const breakdown = {};
+  if (potDist === "1st") {
+    breakdown["1st"] = totalPot;
+  } else if (potDist === "1st-2nd") {
+    breakdown["1st"] = totalPot * 0.7;
+    breakdown["2nd"] = totalPot * 0.3;
+  } else if (potDist === "1st-2nd-3rd") {
+    breakdown["1st"] = totalPot * 0.6;
+    breakdown["2nd"] = totalPot * 0.3;
+    breakdown["3rd"] = totalPot * 0.1;
+  }
 
   return {
     totalPot: totalPot,
     membersCount: membersCount,
-    entryFee: group.entryFee
+    entryFee: group.entryFee,
+    potDist: potDist,
+    breakdown: breakdown
   };
 }
 
-// Modificar nombre y cuota de un grupo existente
-async function updateGroup(groupId, newName, newFee) {
+// Modificar nombre, cuota y distribución de premios de un grupo existente
+async function updateGroup(groupId, newName, newFee, newPotDist, newWhatsappLink) {
   const state = getAppState();
   const group = state.groups.find(g => g.id === groupId);
   if (group) {
     group.name = newName.trim();
     group.entryFee = parseFloat(newFee) || 0;
+    group.potDist = newPotDist || "1st";
+    group.whatsappLink = (newWhatsappLink || "").trim();
     saveAppState(state);
 
     const client = getSupabaseClient();
     if (client) {
       try {
         const { error } = await client.from('groups').update({
-          name: group.name,
+          name: formatGroupName(group.name, group.potDist, group.whatsappLink),
           entry_fee: group.entryFee
         }).eq('id', groupId);
         if (error) throw error;
@@ -867,6 +936,78 @@ async function deleteGroup(groupId) {
       if (error) throw error;
     } catch (e) {
       console.error("❌ Error al eliminar grupo en Supabase:", e.message);
+    }
+  }
+}
+
+// Actualizar apodo y contraseña de un usuario (Acción de Admin)
+async function updateUserInGroup(email, newNickname, newPassword) {
+  const state = getAppState();
+  const user = state.users.find(u => u.email === email);
+  if (user) {
+    user.nickname = newNickname.trim();
+    
+    // Solo actualizar la contraseña si se ingresó un valor nuevo
+    const cleanPassword = (newPassword || "").trim();
+    if (cleanPassword !== "") {
+      user.password = cleanPassword;
+    }
+    
+    saveAppState(state);
+
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        const { error } = await client.from('users').update({
+          nickname: user.nickname,
+          password: user.password
+        }).eq('email', email);
+        if (error) throw error;
+      } catch (e) {
+        console.error("❌ Error al actualizar usuario en Supabase:", e.message);
+      }
+    }
+  }
+}
+
+// Remover un usuario de un grupo de juego (Acción de Admin)
+async function removeUserFromGroup(email, groupId) {
+  const state = getAppState();
+  const user = state.users.find(u => u.email === email);
+  if (user) {
+    if (user.groupIds) {
+      user.groupIds = user.groupIds.filter(id => id !== groupId);
+    }
+    
+    delete state.predictions[`${email}||${groupId}`];
+    
+    // Si el usuario ya no pertenece a ningún grupo, borrarlo por completo (salvo si es el admin)
+    if (email !== "lapollapatojv@gmail.com" && (!user.groupIds || user.groupIds.length === 0)) {
+      state.users = state.users.filter(u => u.email !== email);
+      delete state.predictions[email];
+    }
+    saveAppState(state);
+
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        // 1. Borrar relación grupo-usuario
+        const { error: errUg } = await client.from('user_groups').delete().eq('email', email).eq('group_id', groupId);
+        if (errUg) throw errUg;
+
+        // 2. Si no le quedan grupos en Supabase y no es el admin, borrar usuario
+        if (email !== "lapollapatojv@gmail.com") {
+          const { data: userGroups, error: errCheck } = await client.from('user_groups').select('*').eq('email', email);
+          if (errCheck) throw errCheck;
+
+          if (!userGroups || userGroups.length === 0) {
+            await client.from('users').delete().eq('email', email);
+            await client.from('predictions').delete().eq('email', email);
+          }
+        }
+      } catch (e) {
+        console.error("❌ Error al remover usuario en Supabase:", e.message);
+      }
     }
   }
 }
