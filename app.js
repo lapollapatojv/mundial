@@ -987,16 +987,37 @@ function renderAdmin() {
       ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB}.svg" alt="${match.teamB}" style="width: 24px; height: 16px; border: 1px solid var(--black); border-radius: 2px; vertical-align: middle; margin-left: 5px; margin-right: 5px;">`
       : `<span style="margin-left: 5px; margin-right: 5px;">${match.emojiB}</span>`;
 
+    let teamsDisplayHTML = "";
+    if (match.stage !== "Fase de Grupos") {
+      teamsDisplayHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; margin-top: 5px; flex-wrap: wrap;">
+          <div style="display: inline-flex; align-items: center; gap: 4px;">
+            ${flagAAdmin}
+            <input type="text" class="comic-input admin-team-a" value="${match.teamA}" placeholder="Equipo A" style="width: 150px; margin-bottom: 0; padding: 4px 8px; font-size: 0.85rem;">
+          </div>
+          <span style="color: var(--gray);">vs</span>
+          <div style="display: inline-flex; align-items: center; gap: 4px;">
+            <input type="text" class="comic-input admin-team-b" value="${match.teamB}" placeholder="Equipo B" style="width: 150px; margin-bottom: 0; padding: 4px 8px; font-size: 0.85rem;">
+            ${flagBAdmin}
+          </div>
+        </div>
+      `;
+    } else {
+      teamsDisplayHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; font-weight: 800; margin-top: 5px;">
+          <span style="display: inline-flex; align-items: center;">${flagAAdmin} ${match.teamA}</span>
+          <span style="color: var(--gray);">vs</span>
+          <span style="display: inline-flex; align-items: center;">${flagBAdmin} ${match.teamB}</span>
+        </div>
+      `;
+    }
+
     card.innerHTML = `
       <div class="admin-match-details">
         <div style="font-size: 0.8rem; color: var(--accent); font-weight: bold; margin-bottom: 5px;">
           ${match.stage.toUpperCase()} | ${match.date}
         </div>
-        <div style="display: flex; align-items: center; gap: 10px; font-weight: 800;">
-          <span style="display: inline-flex; align-items: center;">${flagAAdmin} ${match.teamA}</span>
-          <span style="color: var(--gray);">vs</span>
-          <span style="display: inline-flex; align-items: center;">${flagBAdmin} ${match.teamB}</span>
-        </div>
+        ${teamsDisplayHTML}
       </div>
 
       <div class="admin-match-scores" data-match-id="${match.id}">
@@ -1015,10 +1036,19 @@ function renderAdmin() {
       const inputA = card.querySelector(".admin-score-a").value;
       const inputB = card.querySelector(".admin-score-b").value;
 
+      // Si es fase eliminatoria, obtener también los inputs de los nombres de equipo
+      if (match.stage !== "Fase de Grupos") {
+        const teamAVal = card.querySelector(".admin-team-a").value.trim();
+        const teamBVal = card.querySelector(".admin-team-b").value.trim();
+        if (teamAVal && teamBVal) {
+          await updateMatchTeams(match.id, teamAVal, teamBVal);
+        }
+      }
+
       if (inputA === "" || inputB === "") {
         // Restaurar a pendiente
         await updateMatchResult(match.id, null, null);
-        alert(`Partido ${match.teamA} vs ${match.teamB} devuelto a PENDIENTE.`);
+        alert(`Partido devuelto a PENDIENTE.`);
       } else {
         await updateMatchResult(match.id, parseInt(inputA), parseInt(inputB));
         

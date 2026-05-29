@@ -378,6 +378,12 @@ async function syncStateFromSupabase() {
           m.scoreA = dbM.score_a;
           m.scoreB = dbM.score_b;
           m.status = dbM.status;
+          if (dbM.team_a) m.teamA = dbM.team_a;
+          if (dbM.team_b) m.teamB = dbM.team_b;
+          if (dbM.emoji_a) m.emojiA = dbM.emoji_a;
+          if (dbM.emoji_b) m.emojiB = dbM.emoji_b;
+          if (dbM.code_a !== undefined && dbM.code_a !== null) m.codeA = dbM.code_a;
+          if (dbM.code_b !== undefined && dbM.code_b !== null) m.codeB = dbM.code_b;
         }
       });
 
@@ -641,6 +647,69 @@ async function updateMatchResult(matchId, scoreA, scoreB) {
         });
       } catch (e) {
         console.error("❌ Error al guardar resultado en Supabase:", e.message);
+      }
+    }
+  }
+}
+
+// Actualizar equipos y banderas de un partido (Acción de Admin)
+async function updateMatchTeams(matchId, teamA, teamB) {
+  const state = getAppState();
+  const match = state.matches.find(m => m.id === matchId);
+  if (match) {
+    const tA = (teamA || "").trim();
+    const tB = (teamB || "").trim();
+    
+    match.teamA = tA;
+    match.teamB = tB;
+    
+    // Buscar banderas defensivamente
+    // Usamos el listado de COUNTRY_CODES mapeado en app.js o data.js.
+    // Para simplificar, en data.js podemos tener un miniproyecto o buscar en COUNTRY_CODES.
+    // Definimos un pequeño helper para códigos de país.
+    const normalizedA = tA.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normalizedB = tB.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const simpleCodes = {
+      "mexico": "mx", "sudafrica": "za", "corea del sur": "kr", "corea": "kr",
+      "canada": "ca", "gales": "gb-wls", "catar": "qa", "qatar": "qa", "suiza": "ch",
+      "brasil": "br", "marruecos": "ma", "haiti": "ht", "escocia": "gb-sct",
+      "estados unidos": "us", "usa": "us", "paraguay": "py", "australia": "au", "suecia": "se",
+      "alemania": "de", "curazao": "cw", "costa de marfil": "ci", "ecuador": "ec",
+      "paises bajos": "nl", "japon": "jp", "polonia": "pl", "tunez": "tn",
+      "belgica": "be", "egipto": "eg", "iran": "ir", "nueva zelanda": "nz",
+      "espana": "es", "cabo verde": "cv", "arabia saudita": "sa", "uruguay": "uy",
+      "francia": "fr", "senegal": "sn", "peru": "pe", "noruega": "no",
+      "argentina": "ar", "argelia": "dz", "austria": "at", "jordania": "jo",
+      "portugal": "pt", "costa rica": "cr", "uzbekistan": "uz", "colombia": "co",
+      "inglaterra": "gb-eng", "croacia": "hr", "ghana": "gh", "panama": "pa",
+      "italia": "it", "chile": "cl", "venezuela": "ve", "bolivia": "bo"
+    };
+
+    const codeA = simpleCodes[normalizedA] || null;
+    const codeB = simpleCodes[normalizedB] || null;
+    
+    match.codeA = codeA;
+    match.codeB = codeB;
+    match.emojiA = codeA ? "" : "🏆";
+    match.emojiB = codeB ? "" : "🏆";
+
+    saveAppState(state);
+
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await client.from('matches').upsert({
+          id: matchId,
+          team_a: match.teamA,
+          team_b: match.teamB,
+          emoji_a: match.emojiA,
+          emoji_b: match.emojiB,
+          code_a: match.codeA,
+          code_b: match.codeB
+        });
+      } catch (e) {
+        console.error("❌ Error al guardar equipos en Supabase:", e.message);
       }
     }
   }
