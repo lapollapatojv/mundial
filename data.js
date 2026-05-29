@@ -284,7 +284,7 @@ function getSupabaseClient() {
 
 function parseGroupName(dbName) {
   if (!dbName) return { name: "", potDist: "1st", whatsappLink: "" };
-  const parts = dbName.split("||");
+  const parts = dbName.split(/\s*\|\s*\|\s*/);
   return {
     name: parts[0] ? parts[0].trim() : "",
     potDist: parts[1] ? parts[1].trim() : "1st",
