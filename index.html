@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Polla by patojv ⚽ - Entradas y Pronósticos del Mundial</title>
+  <meta name="description" content="Participa en la polla del mundial con tus amigos, familiares y colegas de oficina. Pronostica marcadores, suma puntos y compite por el gran bote acumulado.">
+  <link rel="stylesheet" href="style.css?v=11">
+</head>
+<body>
+
+  <!-- Cabecera Principal -->
+  <header>
+    <div class="brand">
+      <span class="brand-logo" id="header-logo">🏆</span>
+      <h1 class="brand-text">La <span>Polla</span><span class="brand-by" style="font-size: 0.75rem; color: var(--accent); display: block; margin-top: -5px; letter-spacing: 0px; text-transform: lowercase;">by patojv</span></h1>
+    </div>
+    
+    <!-- Navegación y Perfil (Ocultos por defecto hasta login) -->
+    <div id="nav-container" class="nav-links d-none">
+      <button class="comic-btn comic-btn-outline" id="btn-nav-dashboard" title="Ver clasificación y bote">Tablero</button>
+      <button class="comic-btn comic-btn-outline" id="btn-nav-predictions" title="Ingresar mis pronósticos">Pronósticos</button>
+      <button class="comic-btn comic-btn-secondary d-none" id="btn-nav-admin" title="Panel de control del Administrador">Panel Admin ⚙️</button>
+      
+      <div class="user-badge">
+        <div class="avatar"></div>
+        <span id="user-display-name">Usuario</span>
+        <span id="group-display-badge" style="color: var(--accent); margin-left: 5px;">Grupo</span>
+      </div>
+      
+      <button class="comic-btn comic-btn-accent" id="btn-logout" title="Salir del juego">Salir</button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal de Vistas -->
+  <main id="main-content">
+
+    <!-- ========================================== -->
+    <!-- VISTA 1: REGISTRO / AUTENTICACIÓN          -->
+    <!-- ========================================== -->
+    <section id="view-auth" class="auth-container">
+      <div class="auth-ticket-header">
+        🎫 ESTADIO ACCESOS - LA POLLA BY PATOJV
+      </div>
+      <div class="comic-card auth-ticket-body">
+        
+        <!-- Pestañas de Autenticación -->
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab-btn active" id="tab-auth-login">Iniciar Sesión</button>
+          <button type="button" class="auth-tab-btn" id="tab-auth-register">Registrarse</button>
+          <button type="button" class="auth-tab-btn" id="tab-auth-admin">Admin ⚙️</button>
+        </div>
+
+        <!-- 1. Formulario de Inicio de Sesión de Usuario -->
+        <form id="form-user-login">
+          <div class="speech-bubble" style="font-size: 0.85rem; padding: 8px 12px; margin-bottom: 15px; width: 100%;">
+            ¡Ingresa con tu correo, contraseña y selecciona tu grupo de juego activo!
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="login-email">Correo Electrónico</label>
+            <input type="email" id="login-email" class="comic-input" placeholder="ejemplo@correo.com" required>
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="login-password">Contraseña</label>
+            <input type="password" id="login-password" class="comic-input" placeholder="Ingresa tu contraseña" required>
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="login-group">Seleccionar Grupo de Juego</label>
+            <select id="login-group" class="comic-input comic-select" required>
+              <!-- Cargado dinámicamente -->
+            </select>
+          </div>
+          <button type="submit" class="comic-btn comic-btn-primary comic-btn-block">
+            🎟️ ENTRAR AL TABLERO
+          </button>
+        </form>
+
+        <!-- 2. Formulario de Registro de Usuario (Oculto al inicio) -->
+        <form id="form-user-register" class="d-none">
+          <div class="speech-bubble" style="font-size: 0.85rem; padding: 8px 12px; margin-bottom: 15px; width: 100%;">
+            ¡Crea tu apodo, contraseña y únete a uno de los grupos creados por el Administrador!
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="register-email">Correo Electrónico</label>
+            <input type="email" id="register-email" class="comic-input" placeholder="ejemplo@correo.com" required>
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="register-nickname">Tu Apodo / Nickname</label>
+            <input type="text" id="register-nickname" class="comic-input" placeholder="Escribe tu apodo futbolero" required>
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="register-password">Contraseña</label>
+            <input type="password" id="register-password" class="comic-input" placeholder="Crea tu contraseña segura" required>
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="register-group">Seleccionar Grupo de Destino</label>
+            <select id="register-group" class="comic-input comic-select" required>
+              <!-- Cargado dinámicamente -->
+            </select>
+          </div>
+          <button type="submit" class="comic-btn comic-btn-accent comic-btn-block">
+            ➕ REGISTRARSE Y ENTRAR
+          </button>
+        </form>
+
+        <!-- 3. Formulario de Administrador (Oculto al inicio) -->
+        <form id="form-admin-login" class="d-none">
+          <div class="speech-bubble" style="font-size: 0.85rem; padding: 8px 12px; margin-bottom: 15px; width: 100%;">
+            Acceso exclusivo para administradores del juego (crear grupos y registrar resultados).
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="admin-email">Correo de Administrador</label>
+            <input type="email" id="admin-email" class="comic-input" value="lapollapatojv@gmail.com" required readonly style="background: rgba(255,255,255,0.05); color: var(--gray); cursor: not-allowed;">
+          </div>
+          <div class="form-group">
+            <label class="comic-label" for="admin-password">Contraseña</label>
+            <input type="password" id="admin-password" class="comic-input" placeholder="Ingresa tu contraseña de administrador" required>
+          </div>
+          <button type="submit" class="comic-btn comic-btn-secondary comic-btn-block">
+            ⚙️ ACCESO DE ORGANIZADOR
+          </button>
+        </form>
+
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- VISTA 2: TABLERO / DASHBOARD               -->
+    <!-- ========================================== -->
+    <section id="view-dashboard" class="dashboard-grid d-none">
+      
+      <!-- Columna Principal: Clasificación y Bote -->
+      <div class="dashboard-main">
+        <!-- Marcador del Bote Acumulado -->
+        <div class="pot-scoreboard">
+          <div class="pot-label">🏆 Bote Total Acumulado 🏆</div>
+          <div class="pot-amount" id="pot-total-display">Bs. 0.00</div>
+          <div class="pot-stats">
+            <div>Participantes: <span id="pot-members-count">0</span></div>
+            <div>Cuota de Entrada: <span id="pot-fee-display">Bs. 0</span></div>
+          </div>
+        </div>
+
+        <div class="comic-card">
+          <div class="section-header">
+            <h2 class="section-title">TABLA DE CLASIFICACIÓN</h2>
+            <div class="speech-bubble" style="margin-bottom: 0; padding: 6px 12px; font-size: 0.85rem;" id="leaderboard-tip">
+              ¡Acierto exacto = +3 pts!
+            </div>
+          </div>
+
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">Pos</th>
+                <th>Participante</th>
+                <th style="text-align: center; width: 80px;">Exactos (3p)</th>
+                <th style="text-align: center; width: 80px;">Simples (1p)</th>
+                <th style="text-align: right; width: 80px;">Puntos</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody">
+              <!-- Rellenado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Columna Lateral: Estado del Usuario y Accesos -->
+      <div class="dashboard-sidebar">
+        <!-- Tarjeta de Perfil en el Grupo -->
+        <div class="comic-card" style="margin-bottom: 25px; background: linear-gradient(135deg, #2b1b54 0%, #150935 100%);">
+          <h3 class="comic-label" style="color: var(--primary); font-size: 1.1rem; margin-bottom: 15px;">MI TICKET DE JUEGO</h3>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-size: 0.85rem; color: var(--gray);">Jugador</div>
+            <div id="side-user-name" style="font-size: 1.3rem; font-family: var(--font-comic); text-transform: uppercase;">-</div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border: 1px solid var(--black);">
+              <div style="font-size: 0.75rem; color: var(--gray);">Puntos</div>
+              <div id="side-user-points" style="font-size: 1.8rem; font-family: var(--font-comic); color: var(--accent);">0</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border: 1px solid var(--black);">
+              <div style="font-size: 0.75rem; color: var(--gray);">Rendimiento</div>
+              <div id="side-user-accuracy" style="font-size: 1.2rem; font-family: var(--font-comic); color: var(--primary); margin-top: 5px;">0%</div>
+            </div>
+          </div>
+
+          <button class="comic-btn comic-btn-primary comic-btn-block" id="btn-go-to-predict">
+            ✍️ COMPLETAR PRONÓSTICOS
+          </button>
+        </div>
+
+        <!-- Compartir / Invitar -->
+        <div class="comic-card">
+          <h3 class="comic-label" style="margin-bottom: 10px;">¡Invita a tus amigos!</h3>
+          <p style="font-size: 0.85rem; color: var(--gray); margin-bottom: 15px;">
+            Comparte este grupo con tus colegas de oficina o familia para que se registren.
+          </p>
+          <div class="form-group">
+            <label class="comic-label" style="font-size: 0.75rem;">Nombre de este Grupo</label>
+            <input type="text" id="share-group-name" class="comic-input" readonly style="font-size: 0.9rem; padding: 8px;">
+          </div>
+          <p style="font-size: 0.75rem; color: var(--accent); font-weight: bold;">
+            💡 Solo deben registrarse ingresando el mismo nombre de grupo al entrar.
+          </p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- VISTA 3: MIS PRONÓSTICOS                   -->
+    <!-- ========================================== -->
+    <section id="view-predictions" class="d-none">
+      <div class="section-header" style="flex-wrap: wrap; gap: 15px;">
+        <div>
+          <h2 class="comic-banner primary" style="margin-bottom: 5px;">TUS PRONÓSTICOS</h2>
+          <p style="color: var(--gray); font-size: 0.9rem; margin-top: 5px;">
+            Introduce tus marcadores para los partidos. ¡Guarda tus cambios antes de que comience cada partido!
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="comic-btn comic-btn-accent" id="btn-save-all-predictions">
+            💾 GUARDAR PRONÓSTICOS
+          </button>
+        </div>
+      </div>
+
+      <!-- Alerta flotante para éxito/error al guardar -->
+      <div id="predictions-alert" class="alert-comic d-none"></div>
+
+      <!-- Selector de Sub-pestañas por Grupo -->
+      <div id="predictions-tabs-bar" class="predictions-tabs-bar">
+        <!-- Renderizado dinámicamente en app.js -->
+      </div>
+
+      <!-- Contenedor donde se cargarán los partidos tipo entrada de estadio -->
+      <div id="matches-tickets-container">
+        <!-- Renderizado dinámicamente en app.js -->
+      </div>
+
+      <div style="text-align: center; margin-top: 30px; margin-bottom: 50px;">
+        <button class="comic-btn comic-btn-accent" id="btn-save-all-predictions-bottom" style="padding: 15px 40px; font-size: 1.3rem;">
+          💾 GUARDAR PRONÓSTICOS
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VISTA 4: PANEL DE ADMINISTRACIÓN           -->
+    <!-- ========================================== -->
+    <section id="view-admin" class="d-none" style="max-width: 800px; margin: 0 auto;">
+      <h2 class="comic-banner accent">Panel del Administrador ⚙️</h2>
+      
+      <div class="comic-card" style="margin-bottom: 25px;">
+        <div class="speech-bubble" style="margin-bottom: 0; width: 100%;">
+          ¡Ingresa los resultados reales del mundial o gestiona los grupos oficiales de juego!
+        </div>
+      </div>
+
+      <!-- Sección: Crear Nuevo Grupo (Exclusivo Administradores) -->
+      <div class="comic-card" style="margin-bottom: 25px; background: linear-gradient(135deg, #1b113a 0%, #0c061d 100%); border-color: var(--accent);">
+        <h3 class="comic-label" style="font-size: 1.1rem; color: var(--accent); margin-bottom: 15px; border-bottom: 2px solid var(--black); padding-bottom: 5px;">
+          ➕ CREAR NUEVO GRUPO DE POLLA
+        </h3>
+        <form id="form-admin-create-group" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+          <div style="flex: 2; min-width: 200px;">
+            <label class="comic-label" for="admin-new-group-name" style="font-size: 0.8rem; margin-bottom: 4px;">Nombre del Grupo</label>
+            <input type="text" id="admin-new-group-name" class="comic-input" placeholder="Ej: Amigos del Fútbol" required style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+          </div>
+          <div style="flex: 1; min-width: 100px;">
+            <label class="comic-label" for="admin-new-group-fee" style="font-size: 0.8rem; margin-bottom: 4px;">Cuota (Bs.)</label>
+            <input type="number" id="admin-new-group-fee" class="comic-input" min="0" value="10" required style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+          </div>
+          <div style="flex: 1; min-width: 150px;">
+            <button type="submit" class="comic-btn comic-btn-accent comic-btn-block" style="padding: 10px 5px; font-size: 0.95rem; border-width: 2px;">
+              Crear Grupo 🏆
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sección: Gestionar Grupos Existentes -->
+      <div class="comic-card" style="margin-bottom: 25px;">
+        <h3 class="comic-label" style="font-size: 1.2rem; margin-bottom: 20px; border-bottom: 2px solid var(--black); padding-bottom: 10px;">
+          👥 GESTIONAR GRUPOS DE JUEGO
+        </h3>
+        <div id="admin-groups-list">
+          <!-- Renderizado dinámico -->
+        </div>
+      </div>
+
+      <div class="comic-card">
+        <h3 class="comic-label" style="font-size: 1.2rem; margin-bottom: 20px; border-bottom: 2px solid var(--black); padding-bottom: 10px;">
+          RESULTADOS REALES DE LOS PARTIDOS
+        </h3>
+
+        <div id="admin-matches-list">
+          <!-- Renderizado dinámico -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="data.js?v=11"></script>
+  <script src="app.js?v=11"></script>
+</body>
+</html>

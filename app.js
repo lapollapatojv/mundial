@@ -1,0 +1,1042 @@
+// app.js - Controlador de la Aplicación (Lógica y Renderizado)
+
+// Mapeo defensivo de países a códigos ISO para banderas vectoriales (jsDelivr)
+const COUNTRY_CODES = {
+  "méxico": "mx", "mexico": "mx",
+  "sudáfrica": "za", "sudafrica": "za",
+  "corea del sur": "kr", "corea": "kr", "corea republica": "kr",
+  "república checa": "cz", "republica checa": "cz",
+  "canadá": "ca", "canada": "ca",
+  "bosnia y herzegovina": "ba", "bosnia": "ba",
+  "estados unidos": "us", "usa": "us", "u.s.a.": "us",
+  "paraguay": "py",
+  "catar": "qa", "qatar": "qa",
+  "suiza": "ch",
+  "brasil": "br",
+  "marruecos": "ma",
+  "australia": "au",
+  "turquía": "tr", "turquia": "tr",
+  "alemania": "de",
+  "curazao": "cw",
+  "países bajos": "nl", "paises bajos": "nl",
+  "japón": "jp", "japon": "jp",
+  "españa": "es", "espana": "es",
+  "cabo verde": "cv",
+  "arabia saudita": "sa",
+  "uruguay": "uy"
+};
+
+// Estado de la sesión actual
+let currentUser = null;
+let currentGroupId = null;
+
+// Elementos del DOM
+const headerLogo = document.getElementById("header-logo");
+const navContainer = document.getElementById("nav-container");
+const userDisplayName = document.getElementById("user-display-name");
+const groupDisplayBadge = document.getElementById("group-display-badge");
+
+const btnNavDashboard = document.getElementById("btn-nav-dashboard");
+const btnNavPredictions = document.getElementById("btn-nav-predictions");
+const btnNavAdmin = document.getElementById("btn-nav-admin");
+const btnLogout = document.getElementById("btn-logout");
+
+// Vistas
+const viewAuth = document.getElementById("view-auth");
+const viewDashboard = document.getElementById("view-dashboard");
+const viewPredictions = document.getElementById("view-predictions");
+const viewAdmin = document.getElementById("view-admin");
+
+// Elementos de la Pestaña Auth (Formularios e Inputs)
+const tabAuthLogin = document.getElementById("tab-auth-login");
+const tabAuthRegister = document.getElementById("tab-auth-register");
+const tabAuthAdmin = document.getElementById("tab-auth-admin");
+
+const formUserLogin = document.getElementById("form-user-login");
+const loginEmail = document.getElementById("login-email");
+const loginPassword = document.getElementById("login-password");
+const loginGroupSelect = document.getElementById("login-group");
+
+const formUserRegister = document.getElementById("form-user-register");
+const registerEmail = document.getElementById("register-email");
+const registerNickname = document.getElementById("register-nickname");
+const registerPassword = document.getElementById("register-password");
+const registerGroupSelect = document.getElementById("register-group");
+
+const formAdminLogin = document.getElementById("form-admin-login");
+const adminEmail = document.getElementById("admin-email");
+const adminPassword = document.getElementById("admin-password");
+
+// Formulario de Crear Grupo en Vista Admin
+const formAdminCreateGroup = document.getElementById("form-admin-create-group");
+const adminNewGroupName = document.getElementById("admin-new-group-name");
+const adminNewGroupFee = document.getElementById("admin-new-group-fee");
+
+// Inicialización de la Aplicación
+document.addEventListener("DOMContentLoaded", () => {
+  initApp();
+});
+
+async function initApp() {
+  // Asegurar que el estado inicial exista
+  getAppState();
+  
+  // Sincronizar desde Supabase antes de pintar la UI
+  await syncStateFromSupabase();
+
+  // Rellenar selectores de grupos
+  populateGroupsDropdown();
+
+  // Escuchar eventos globales
+  setupEventListeners();
+
+  // Configurar las pestañas del landing page
+  setupAuthTabs();
+
+  // Restaurar sesión si existe
+  const savedEmail = localStorage.getItem("session_user_email");
+  const savedGroupId = localStorage.getItem("session_group_id");
+
+  if (savedEmail && savedGroupId) {
+    const state = getAppState();
+    const user = state.users.find(u => u.email === savedEmail);
+    const group = state.groups.find(g => g.id === savedGroupId);
+    
+    if (user && group) {
+      currentUser = user;
+      currentGroupId = savedGroupId;
+      updateHeaderUI();
+      switchView("dashboard");
+      return;
+    }
+  }
+
+  // Si no hay sesión, ir a auth
+  switchView("auth");
+}
+
+// Configurar el cambio de pestañas de la Landing Page
+function setupAuthTabs() {
+  tabAuthLogin.addEventListener("click", () => {
+    tabAuthLogin.classList.add("active");
+    tabAuthRegister.classList.remove("active");
+    tabAuthAdmin.classList.remove("active");
+
+    formUserLogin.classList.remove("d-none");
+    formUserRegister.classList.add("d-none");
+    formAdminLogin.classList.add("d-none");
+  });
+
+  tabAuthRegister.addEventListener("click", () => {
+    tabAuthLogin.classList.remove("active");
+    tabAuthRegister.classList.add("active");
+    tabAuthAdmin.classList.remove("active");
+
+    formUserLogin.classList.add("d-none");
+    formUserRegister.classList.remove("d-none");
+    formAdminLogin.classList.add("d-none");
+  });
+
+  tabAuthAdmin.addEventListener("click", () => {
+    tabAuthLogin.classList.remove("active");
+    tabAuthRegister.classList.remove("active");
+    tabAuthAdmin.classList.add("active");
+
+    formUserLogin.classList.add("d-none");
+    formUserRegister.classList.add("d-none");
+    formAdminLogin.classList.remove("d-none");
+  });
+}
+
+// Configuración de los Event Listeners
+function setupEventListeners() {
+  // Navegación
+  btnNavDashboard.addEventListener("click", () => switchView("dashboard"));
+  btnNavPredictions.addEventListener("click", () => switchView("predictions"));
+  btnNavAdmin.addEventListener("click", () => switchView("admin"));
+  
+  // Salir
+  btnLogout.addEventListener("click", () => {
+    localStorage.removeItem("session_user_email");
+    localStorage.removeItem("session_group_id");
+    currentUser = null;
+    currentGroupId = null;
+    updateHeaderUI();
+    switchView("auth");
+  });
+
+  // Login de Usuario
+  formUserLogin.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = loginEmail.value.trim().toLowerCase();
+    const password = loginPassword.value.trim();
+    const groupId = loginGroupSelect.value;
+
+    if (!groupId) {
+      alert("Por favor selecciona un grupo para ingresar.");
+      return;
+    }
+
+    const state = getAppState();
+    const user = state.users.find(u => u.email === email);
+
+    if (!user) {
+      alert("Este correo no está registrado. Ve a la pestaña 'Registrarse' para crear tu cuenta y unirte al grupo.");
+      return;
+    }
+
+    if (user.password && user.password !== password) {
+      alert("Contraseña incorrecta.");
+      return;
+    }
+
+    if (!user.groupIds || !user.groupIds.includes(groupId)) {
+      alert("No perteneces a este grupo. Regístrate en él en la pestaña 'Registrarse' para unirte.");
+      return;
+    }
+
+    currentUser = user;
+    currentGroupId = groupId;
+
+    // Guardar sesión
+    localStorage.setItem("session_user_email", email);
+    localStorage.setItem("session_group_id", groupId);
+
+    updateHeaderUI();
+    switchView("dashboard");
+  });
+
+  // Registro de Usuario
+  formUserRegister.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = registerEmail.value.trim().toLowerCase();
+    const nickname = registerNickname.value.trim();
+    const password = registerPassword.value.trim();
+    const groupId = registerGroupSelect.value;
+
+    if (!groupId) {
+      alert("Por favor selecciona un grupo.");
+      return;
+    }
+
+    if (!password) {
+      alert("Por favor ingresa una contraseña.");
+      return;
+    }
+
+    try {
+      const user = await authenticateUser(email, nickname, groupId, password);
+      currentUser = user;
+      currentGroupId = groupId;
+
+      // Guardar sesión
+      localStorage.setItem("session_user_email", user.email);
+      localStorage.setItem("session_group_id", groupId);
+
+      updateHeaderUI();
+      switchView("dashboard");
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // Login de Admin
+  formAdminLogin.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = adminEmail.value.trim().toLowerCase();
+    const password = adminPassword.value;
+
+    if (email !== "lapollapatojv@gmail.com" || password !== "Jambalaya.4910519") {
+      alert("Credenciales de administrador inválidas.");
+      return;
+    }
+
+    const state = getAppState();
+    let adminUser = state.users.find(u => u.email === "lapollapatojv@gmail.com");
+
+    if (!adminUser) {
+      adminUser = {
+        email: "lapollapatojv@gmail.com",
+        nickname: "Organizador (Admin)",
+        groupIds: ["g1", "g2", "g3"]
+      };
+      state.users.push(adminUser);
+      saveAppState(state);
+    }
+
+    const activeGroup = state.groups[0] ? state.groups[0].id : "g1";
+
+    currentUser = adminUser;
+    currentGroupId = activeGroup;
+
+    // Guardar sesión
+    localStorage.setItem("session_user_email", "lapollapatojv@gmail.com");
+    localStorage.setItem("session_group_id", activeGroup);
+
+    updateHeaderUI();
+    switchView("dashboard");
+  });
+
+  // Creación de Grupo por el Admin (en panel admin)
+  formAdminCreateGroup.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = adminNewGroupName.value.trim();
+    const fee = parseFloat(adminNewGroupFee.value) || 0;
+
+    if (!name) {
+      alert("Por favor ingresa un nombre para el grupo.");
+      return;
+    }
+
+    // Crear el grupo
+    const newGroup = await createGroup(name, fee, "lapollapatojv@gmail.com");
+
+    // Rellenar dropdowns de grupo de login/registro
+    populateGroupsDropdown();
+
+    // Auto-seleccionar el grupo recién creado si el grupo actual no es válido o es el marcador temporal "g1"
+    const state = getAppState();
+    const currentGroupExists = state.groups.some(g => g.id === currentGroupId);
+    if (!currentGroupExists || currentGroupId === "g1") {
+      currentGroupId = newGroup.id;
+      localStorage.setItem("session_group_id", newGroup.id);
+      updateHeaderUI();
+    }
+
+    // Reset del formulario
+    formAdminCreateGroup.reset();
+
+    alert(`Grupo "${newGroup.name}" creado con éxito. ¡Los usuarios ya se pueden registrar en él!`);
+  });
+
+  // Guardar Pronósticos (Botón superior e inferior)
+  document.getElementById("btn-save-all-predictions").addEventListener("click", saveAllPredictionsFromUI);
+  document.getElementById("btn-save-all-predictions-bottom").addEventListener("click", saveAllPredictionsFromUI);
+
+  // Acceso directo a pronósticos desde el Dashboard
+  document.getElementById("btn-go-to-predict").addEventListener("click", () => {
+    switchView("predictions");
+  });
+
+  // Delegación de eventos para el botón de auto-completar individual por partido
+  const containerMatches = document.getElementById("matches-tickets-container");
+  if (containerMatches) {
+    containerMatches.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-random-single");
+      if (btn) {
+        const scoreInputs = btn.closest(".score-inputs");
+        if (scoreInputs) {
+          const inputA = scoreInputs.querySelector(".pred-a");
+          const inputB = scoreInputs.querySelector(".pred-b");
+          if (inputA && inputB && !inputA.disabled && !inputB.disabled) {
+            const realisticScores = [
+              [1, 0], [2, 0], [2, 1], [3, 0], [3, 1], [3, 2],
+              [0, 0], [1, 1], [2, 2],
+              [0, 1], [0, 2], [1, 2], [0, 3], [1, 3], [2, 3]
+            ];
+            const randomIndex = Math.floor(Math.random() * realisticScores.length);
+            const [scoreA, scoreB] = realisticScores[randomIndex];
+            
+            inputA.value = scoreA;
+            inputB.value = scoreB;
+            
+            // Efecto destello cómic
+            inputA.style.backgroundColor = "var(--primary)";
+            inputB.style.backgroundColor = "var(--primary)";
+            inputA.style.color = "var(--black)";
+            inputB.style.color = "var(--black)";
+            setTimeout(() => {
+              inputA.style.backgroundColor = "";
+              inputB.style.backgroundColor = "";
+              inputA.style.color = "";
+              inputB.style.color = "";
+            }, 200);
+          }
+        }
+      }
+    });
+  }
+}
+
+// Rellenar lista de grupos en los selectores de Auth (Login y Registro)
+function populateGroupsDropdown() {
+  const state = getAppState();
+  loginGroupSelect.innerHTML = "";
+  registerGroupSelect.innerHTML = "";
+
+  if (state.groups.length === 0) {
+    const optLogin = document.createElement("option");
+    optLogin.value = "";
+    optLogin.textContent = "No hay grupos creados.";
+    loginGroupSelect.appendChild(optLogin);
+
+    const optReg = document.createElement("option");
+    optReg.value = "";
+    optReg.textContent = "No hay grupos creados.";
+    registerGroupSelect.appendChild(optReg);
+    return;
+  }
+
+  state.groups.forEach(g => {
+    const optLogin = document.createElement("option");
+    optLogin.value = g.id;
+    optLogin.textContent = `${g.name} (Bote: Bs. ${g.entryFee})`;
+    loginGroupSelect.appendChild(optLogin);
+
+    const optReg = document.createElement("option");
+    optReg.value = g.id;
+    optReg.textContent = `${g.name} (Bote: Bs. ${g.entryFee})`;
+    registerGroupSelect.appendChild(optReg);
+  });
+}
+
+// Actualizar barra superior (Header) con datos del usuario
+function updateHeaderUI() {
+  if (currentUser && currentGroupId) {
+    const state = getAppState();
+    const group = state.groups.find(g => g.id === currentGroupId);
+    
+    userDisplayName.textContent = currentUser.nickname;
+    navContainer.classList.remove("d-none");
+    
+    // Mostrar u ocultar el botón de admin de acuerdo al correo
+    if (currentUser.email === "lapollapatojv@gmail.com") {
+      btnNavAdmin.classList.remove("d-none");
+      
+      // Si el administrador está logueado, permitirle cambiar de grupo mediante un select en la cabecera
+      if (state.groups.length === 0) {
+        groupDisplayBadge.textContent = "Sin grupos";
+      } else {
+        let selectHTML = `<select id="header-group-select" style="background: var(--black); color: var(--accent); border: 2px solid var(--accent); padding: 2px 6px; font-family: var(--font-comic); font-weight: bold; font-size: 0.85rem; border-radius: 6px; cursor: pointer; outline: none;">`;
+        state.groups.forEach(g => {
+          const selected = g.id === currentGroupId ? "selected" : "";
+          selectHTML += `<option value="${g.id}" ${selected}>🎟️ ${g.name}</option>`;
+        });
+        selectHTML += `</select>`;
+        groupDisplayBadge.innerHTML = selectHTML;
+        
+        // Agregar listener para cambiar de grupo dinámicamente
+        const selectElem = document.getElementById("header-group-select");
+        if (selectElem) {
+          selectElem.addEventListener("change", (e) => {
+            const newGroupId = e.target.value;
+            currentGroupId = newGroupId;
+            localStorage.setItem("session_group_id", newGroupId);
+            
+            // Refrescar el header y las vistas activas
+            updateHeaderUI();
+            if (!viewDashboard.classList.contains("d-none")) {
+              renderDashboard();
+            } else if (!viewPredictions.classList.contains("d-none")) {
+              renderPredictions();
+            }
+          });
+        }
+      }
+    } else {
+      btnNavAdmin.classList.add("d-none");
+      groupDisplayBadge.textContent = group ? `🎟️ ${group.name}` : "";
+    }
+
+    // Compartir grupo info en el dashboard sidebar
+    const shareInput = document.getElementById("share-group-name");
+    if (shareInput && group) {
+      shareInput.value = group.name;
+    }
+  } else {
+    navContainer.classList.add("d-none");
+  }
+}
+
+// Control de navegación / Cambio de pestañas
+function switchView(viewName) {
+  // Ocultar todas las vistas
+  viewAuth.classList.add("d-none");
+  viewDashboard.classList.add("d-none");
+  viewPredictions.classList.add("d-none");
+  viewAdmin.classList.add("d-none");
+
+  // Quitar clase active a los botones del menú
+  btnNavDashboard.classList.remove("comic-btn-primary");
+  btnNavDashboard.classList.add("comic-btn-outline");
+  btnNavPredictions.classList.remove("comic-btn-primary");
+  btnNavPredictions.classList.add("comic-btn-outline");
+  btnNavAdmin.classList.remove("comic-btn-accent");
+  btnNavAdmin.classList.add("comic-btn-secondary");
+
+  if (viewName === "auth") {
+    viewAuth.classList.remove("d-none");
+  } else if (viewName === "dashboard") {
+    viewDashboard.classList.remove("d-none");
+    btnNavDashboard.classList.add("comic-btn-primary");
+    btnNavDashboard.classList.remove("comic-btn-outline");
+    renderDashboard();
+  } else if (viewName === "predictions") {
+    viewPredictions.classList.remove("d-none");
+    btnNavPredictions.classList.add("comic-btn-primary");
+    btnNavPredictions.classList.remove("comic-btn-outline");
+    renderPredictions();
+  } else if (viewName === "admin") {
+    viewAdmin.classList.remove("d-none");
+    btnNavAdmin.classList.add("comic-btn-accent");
+    btnNavAdmin.classList.remove("comic-btn-secondary");
+    renderAdmin();
+  }
+}
+
+// ==========================================================================
+// RENDERIZADO DE LAS VISTAS
+// ==========================================================================
+
+// 1. Renderizar Dashboard
+function renderDashboard() {
+  if (!currentGroupId || !currentUser) return;
+
+  const potDetails = getGroupPotDetails(currentGroupId);
+  const leaderboard = getGroupLeaderboard(currentGroupId);
+  
+  // Actualizar Bote
+  document.getElementById("pot-total-display").textContent = `Bs. ${potDetails.totalPot.toFixed(2)}`;
+  document.getElementById("pot-members-count").textContent = potDetails.membersCount;
+  document.getElementById("pot-fee-display").textContent = `Bs. ${potDetails.entryFee}`;
+
+  // Actualizar Tabla de Clasificación
+  const tbody = document.getElementById("leaderboard-tbody");
+  tbody.innerHTML = "";
+
+  if (leaderboard.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No hay participantes aún.</td></tr>`;
+  } else {
+    leaderboard.forEach((player, index) => {
+      const tr = document.createElement("tr");
+      tr.className = "leaderboard-row";
+      if (player.email === currentUser.email) {
+        tr.classList.add("current-user");
+      }
+
+      tr.innerHTML = `
+        <td><span class="rank-badge">${index + 1}</span></td>
+        <td>
+          <div class="player-info">
+            <span class="player-name">${player.nickname} ${player.email === currentUser.email ? " (Tú)" : ""}</span>
+            <span class="player-email">${player.email}</span>
+          </div>
+        </td>
+        <td style="text-align: center;">${player.exact}</td>
+        <td style="text-align: center;">${player.trend}</td>
+        <td class="player-points">${player.points} pts</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Actualizar Panel Lateral de Usuario
+  const myStats = leaderboard.find(p => p.email === currentUser.email);
+  if (myStats) {
+    document.getElementById("side-user-name").textContent = currentUser.nickname;
+    document.getElementById("side-user-points").textContent = `${myStats.points} pts`;
+    
+    // Calcular porcentaje de aciertos
+    const state = getAppState();
+    const playedMatches = state.matches.filter(m => m.status === "jugado").length;
+    let accuracy = 0;
+    if (playedMatches > 0) {
+      accuracy = Math.round(((myStats.exact + myStats.trend) / playedMatches) * 100);
+    }
+    document.getElementById("side-user-accuracy").textContent = `${accuracy}%`;
+  }
+}
+
+// Variable de control para las pestañas de los pronósticos
+let activePredictionsTab = "Grupo A";
+
+// 2. Renderizar Pronósticos (Vista Entradas de Estadio con Pestañas)
+function renderPredictions() {
+  if (!currentUser) return;
+
+  const state = getAppState();
+  const userPreds = state.predictions[currentUser.email] || {};
+  const container = document.getElementById("matches-tickets-container");
+  const tabsBar = document.getElementById("predictions-tabs-bar");
+  
+  container.innerHTML = "";
+
+  if (state.matches.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎟️</div>No hay partidos cargados en la base de datos.</div>`;
+    if (tabsBar) tabsBar.innerHTML = "";
+    return;
+  }
+
+  // Obtener lista de las 12 grupos de la fase de grupos y añadir las fases finales individuales
+  const groupNames = ["Grupo A", "Grupo B", "Grupo C", "Grupo D", "Grupo E", "Grupo F", "Grupo G", "Grupo H", "Grupo I", "Grupo J", "Grupo K", "Grupo L"];
+  const knockoutTabs = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Finales"];
+  const allTabs = [...groupNames, ...knockoutTabs];
+
+  // Validación de seguridad por si cambia el estado
+  if (!allTabs.includes(activePredictionsTab)) {
+    activePredictionsTab = "Grupo A";
+  }
+
+  // Renderizar la barra de sub-pestañas
+  if (tabsBar) {
+    tabsBar.innerHTML = "";
+    allTabs.forEach(tabName => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tab-btn";
+      if (knockoutTabs.includes(tabName)) {
+        btn.classList.add("finales-tab");
+      }
+      if (tabName === activePredictionsTab) {
+        btn.classList.add("active");
+      }
+      btn.textContent = tabName;
+      btn.addEventListener("click", () => switchPredictionsTab(tabName));
+      tabsBar.appendChild(btn);
+    });
+  }
+
+  // Filtrar los partidos a mostrar en la pestaña seleccionada
+  let matchesToRender = [];
+  if (knockoutTabs.includes(activePredictionsTab)) {
+    if (activePredictionsTab === "Dieciseisavos") {
+      matchesToRender = state.matches.filter(m => m.stage === "Dieciseisavos de Final");
+    } else if (activePredictionsTab === "Octavos") {
+      matchesToRender = state.matches.filter(m => m.stage === "Octavos de Final");
+    } else if (activePredictionsTab === "Cuartos") {
+      matchesToRender = state.matches.filter(m => m.stage === "Cuartos de Final");
+    } else if (activePredictionsTab === "Semifinales") {
+      matchesToRender = state.matches.filter(m => m.stage === "Semifinal");
+    } else if (activePredictionsTab === "Finales") {
+      matchesToRender = state.matches.filter(m => m.stage === "Tercer Puesto" || m.stage === "Gran Final");
+    }
+  } else {
+    matchesToRender = state.matches.filter(m => m.stage === "Fase de Grupos" && m.group === activePredictionsTab);
+  }
+
+  if (matchesToRender.length === 0) {
+    container.innerHTML = `<div class="empty-state">No hay partidos registrados en esta sección.</div>`;
+    return;
+  }
+
+  // Encabezado de la pestaña actual
+  const tabHeader = document.createElement("div");
+  tabHeader.style.margin = "10px 0 20px 0";
+  if (knockoutTabs.includes(activePredictionsTab)) {
+    tabHeader.innerHTML = `<h2 class="comic-banner secondary" style="font-size: 1.6rem; transform: rotate(1deg); padding: 8px 16px; margin-bottom: 10px;">${activePredictionsTab} 🏆</h2>`;
+  } else {
+    tabHeader.innerHTML = `<h2 class="comic-banner primary" style="font-size: 1.6rem; transform: rotate(-1deg); padding: 8px 16px; margin-bottom: 10px;">${activePredictionsTab} ⚽</h2>`;
+  }
+  container.appendChild(tabHeader);
+
+  // Renderizar encuentros secuencialmente
+  matchesToRender.forEach(match => {
+    const matchIndex = state.matches.findIndex(m => m.id === match.id);
+    const pred = userPreds[match.id] || { predA: "", predB: "" };
+
+    const ticketWrapper = document.createElement("div");
+    ticketWrapper.className = "ticket-wrapper";
+    ticketWrapper.innerHTML = getMatchTicketHTML(match, pred, matchIndex);
+    container.appendChild(ticketWrapper);
+  });
+}
+
+// Función para verificar si el partido ya está cerrado para pronósticos (menos de 30 minutos antes del inicio)
+function isMatchLocked(match) {
+  if (!match.isoDate) return false;
+  const matchTime = new Date(match.isoDate).getTime();
+  const limitTime = matchTime - 30 * 60 * 1000; // Límite: 30 minutos antes del partido
+  const now = Date.now();
+  return now > limitTime;
+}
+
+// Función auxiliar para construir el HTML de la entrada de estadio
+function getMatchTicketHTML(match, pred, index) {
+  const isPlayed = match.status === "jugado";
+  const isLocked = isPlayed || isMatchLocked(match);
+
+  // Determinar puntos obtenidos y sticker si ya se jugó
+  let pointsStickerHTML = "";
+  if (isPlayed) {
+    const pointsEarned = calculatePredictionPoints(pred.predA, pred.predB, match.scoreA, match.scoreB);
+    if (pointsEarned === 3) {
+      pointsStickerHTML = `<div class="sticker-points exact">¡EXACTO! +3 PTS</div>`;
+    } else if (pointsEarned === 1) {
+      pointsStickerHTML = `<div class="sticker-points">ACERTADO +1 PT</div>`;
+    } else {
+      pointsStickerHTML = `<div class="sticker-points fail">FALLADO 0 PTS</div>`;
+    }
+  }
+
+  // Determinar código de bandera resolviendo de forma defensiva si no está en la base de datos
+  const codeA = match.codeA || COUNTRY_CODES[match.teamA.toLowerCase().trim()];
+  const codeB = match.codeB || COUNTRY_CODES[match.teamB.toLowerCase().trim()];
+
+  const flagAHTML = codeA 
+    ? `<img class="team-flag-img" src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA}.svg" alt="${match.teamA}">`
+    : `<span class="team-flag">${match.emojiA}</span>`;
+
+  const flagBHTML = codeB 
+    ? `<img class="team-flag-img" src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB}.svg" alt="${match.teamB}">`
+    : `<span class="team-flag">${match.emojiB}</span>`;
+
+  // Texto de estado y resultado real
+  let statusTextHTML = "";
+  if (isPlayed) {
+    statusTextHTML = `Resultado Real: <strong style="color: var(--white);">${match.scoreA} - ${match.scoreB}</strong>`;
+  } else if (isMatchLocked(match)) {
+    statusTextHTML = `<span style="color: var(--secondary); font-weight: bold;">🔒 Pronósticos cerrados (30m límite)</span>`;
+  } else {
+    statusTextHTML = `<span style="color: var(--primary);">🟢 Abierto para pronósticos</span>`;
+  }
+
+  return `
+    <div class="ticket" id="ticket-${match.id}">
+      <!-- Cuerpo Principal: Detalles del Encuentro -->
+      <div class="ticket-body">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="match-stage">${match.stage}</span>
+          <span style="font-size: 0.8rem; font-weight: 800; color: var(--accent);">G-GATE ${index + 1}</span>
+        </div>
+
+        <div class="match-teams">
+          <!-- Equipo A -->
+          <div class="team-container">
+            ${flagAHTML}
+            <span class="team-name" title="${match.teamA}">${match.teamA}</span>
+          </div>
+
+          <!-- Goles Pronóstico -->
+          <div class="score-inputs" data-match-id="${match.id}" style="display: flex; align-items: center; gap: 6px;">
+            <input type="number" class="score-field pred-a" min="0" placeholder="-" 
+              value="${pred.predA !== null && pred.predA !== undefined ? pred.predA : ""}" 
+              ${isLocked ? "disabled" : ""}>
+            <span class="score-separator">:</span>
+            <input type="number" class="score-field pred-b" min="0" placeholder="-" 
+              value="${pred.predB !== null && pred.predB !== undefined ? pred.predB : ""}" 
+              ${isLocked ? "disabled" : ""}>
+            ${!isLocked ? `<button type="button" class="comic-btn btn-random-single" style="padding: 4px 6px; font-size: 0.9rem; border-radius: 6px; border-width: 2px; box-shadow: var(--comic-shadow-sm); background: var(--accent); color: var(--black); line-height: 1;" title="Auto-completar este partido">🎲</button>` : ''}
+          </div>
+
+          <!-- Equipo B -->
+          <div class="team-container">
+            ${flagBHTML}
+            <span class="team-name" title="${match.teamB}">${match.teamB}</span>
+          </div>
+        </div>
+
+        <!-- Estado de cierre o resultado -->
+        <div style="font-size: 0.8rem; color: var(--gray); text-align: center;">
+          ${statusTextHTML}
+        </div>
+      </div>
+
+      <!-- Línea de corte perforada -->
+      <div class="ticket-divider"></div>
+
+      <!-- Talón del Ticket -->
+      <div class="ticket-stub">
+        <div class="ticket-date">${match.date}</div>
+        
+        <div style="width: 100%;">
+          <div class="ticket-gate">ACCESO A</div>
+          <div class="barcode">
+            <span class="bar thin"></span>
+            <span class="bar thick"></span>
+            <span class="bar"></span>
+            <span class="bar wide"></span>
+            <span class="bar thin"></span>
+            <span class="bar"></span>
+            <span class="bar thick"></span>
+            <span class="bar thin"></span>
+            <span class="bar wide"></span>
+            <span class="bar"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticker flotante de puntos si aplica -->
+      ${pointsStickerHTML}
+    </div>
+  `;
+}
+
+// Función para cambiar de pestaña con guardado automático silencioso
+async function switchPredictionsTab(tabName) {
+  if (currentUser) {
+    await saveAllPredictionsFromUI(true); // Guardar silenciosamente el tab actual
+  }
+  activePredictionsTab = tabName;
+  renderPredictions();
+}
+
+// Guardar todos los pronósticos ingresados en la interfaz (Enforzando límite de 30 minutos)
+async function saveAllPredictionsFromUI(silent = false) {
+  if (!currentUser) return;
+
+  const isSilent = (silent === true);
+  const scoreContainers = document.querySelectorAll(".score-inputs");
+  const state = getAppState();
+  let savedCount = 0;
+  let skippedCount = 0;
+
+  const promises = [];
+
+  scoreContainers.forEach(container => {
+    const matchId = container.getAttribute("data-match-id");
+    const match = state.matches.find(m => m.id === matchId);
+
+    // Solo permitir guardar si no está bloqueado (menos de 30 mins) y no se ha jugado
+    if (match && !isMatchLocked(match) && match.status !== "jugado") {
+      const valA = container.querySelector(".pred-a").value;
+      const valB = container.querySelector(".pred-b").value;
+
+      if (valA === "" || valB === "") {
+        promises.push(saveUserPrediction(currentUser.email, matchId, null, null));
+      } else {
+        promises.push(saveUserPrediction(currentUser.email, matchId, parseInt(valA), parseInt(valB)));
+        savedCount++;
+      }
+    } else {
+      skippedCount++;
+    }
+  });
+
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
+
+  if (!isSilent) {
+    // Mostrar alerta de éxito estilo Comic
+    const alertBox = document.getElementById("predictions-alert");
+    alertBox.className = "alert-comic success";
+    let msg = `¡Tus pronósticos se han guardado! (${savedCount} marcadores registrados en esta pestaña)`;
+    if (skippedCount > 0) {
+      msg += ` [Se omitieron ${skippedCount} partidos cerrados]`;
+    }
+    alertBox.textContent = msg;
+    alertBox.classList.remove("d-none");
+    
+    // Auto desvanecer alerta y refrescar vista
+    setTimeout(() => {
+      alertBox.className = "alert-comic success d-none";
+    }, 4000);
+
+    // Volver a renderizar para fijar estilos
+    renderPredictions();
+  }
+}
+
+// Rellenar de forma aleatoria y realista
+function fillRandomPredictions() {
+  if (!currentUser) return;
+
+  // Lista de marcadores realistas de fútbol (ponderando marcadores lógicos)
+  const realisticScores = [
+    [1, 0], [2, 0], [2, 1], [3, 0], [3, 1], [3, 2],
+    [0, 0], [1, 1], [2, 2],
+    [0, 1], [0, 2], [1, 2], [0, 3], [1, 3], [2, 3]
+  ];
+
+  const scoreContainers = document.querySelectorAll(".score-inputs");
+  let count = 0;
+
+  scoreContainers.forEach(container => {
+    const inputA = container.querySelector(".pred-a");
+    const inputB = container.querySelector(".pred-b");
+
+    // Rellenar solo si el partido no se ha jugado (inputs no deshabilitados)
+    if (inputA && inputB && !inputA.disabled && !inputB.disabled) {
+      const randomIndex = Math.floor(Math.random() * realisticScores.length);
+      const [scoreA, scoreB] = realisticScores[randomIndex];
+
+      inputA.value = scoreA;
+      inputB.value = scoreB;
+      count++;
+    }
+  });
+
+  // Alerta de éxito estilo Comic
+  const alertBox = document.getElementById("predictions-alert");
+  alertBox.className = "alert-comic success";
+  alertBox.textContent = `🎲 ¡Se completaron ${count} pronósticos aleatorios en pantalla! Revisa los resultados y haz clic en "GUARDAR PRONÓSTICOS" para registrarlos.`;
+  alertBox.classList.remove("d-none");
+
+  setTimeout(() => {
+    alertBox.classList.add("d-none");
+  }, 5000);
+}
+
+// 3. Renderizar Panel Admin (Cargar Resultados Reales con Banderas y Gestionar Grupos)
+function renderAdmin() {
+  const state = getAppState();
+
+  // A. RENDERIZAR LISTADO DE GRUPOS EXISTENTES
+  const groupsContainer = document.getElementById("admin-groups-list");
+  if (groupsContainer) {
+    groupsContainer.innerHTML = "";
+
+    if (state.groups.length === 0) {
+      groupsContainer.innerHTML = `<p class="empty-state">No hay grupos de juego registrados.</p>`;
+    } else {
+      state.groups.forEach(group => {
+        const row = document.createElement("div");
+        row.className = "admin-group-row";
+        row.style.display = "flex";
+        row.style.flexWrap = "wrap";
+        row.style.gap = "10px";
+        row.style.alignItems = "center";
+        row.style.marginBottom = "15px";
+        row.style.paddingBottom = "10px";
+        row.style.borderBottom = "1px dashed rgba(255, 255, 255, 0.1)";
+
+        row.innerHTML = `
+          <div style="flex: 2; min-width: 180px;">
+            <input type="text" class="comic-input edit-group-name" value="${group.name}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+          </div>
+          <div style="width: 100px;">
+            <input type="number" class="comic-input edit-group-fee" min="0" value="${group.entryFee}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <button class="comic-btn comic-btn-primary btn-update-group" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px;">
+              Guardar 💾
+            </button>
+            <button class="comic-btn comic-btn-secondary btn-delete-group" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px;">
+              Eliminar 🗑️
+            </button>
+          </div>
+        `;
+
+        // Modificar Grupo
+        row.querySelector(".btn-update-group").addEventListener("click", async () => {
+          const newName = row.querySelector(".edit-group-name").value.trim();
+          const newFee = parseFloat(row.querySelector(".edit-group-fee").value) || 0;
+
+          if (!newName) {
+            alert("El nombre del grupo no puede estar vacío.");
+            return;
+          }
+
+          await updateGroup(group.id, newName, newFee);
+          
+          // Refrescar selectores de Auth
+          populateGroupsDropdown();
+          
+          // Feedback visual
+          const btn = row.querySelector(".btn-update-group");
+          btn.textContent = "Guardado ✔";
+          btn.style.backgroundColor = "var(--accent)";
+          btn.style.color = "var(--black)";
+          setTimeout(() => {
+            btn.textContent = "Guardar 💾";
+            btn.style.backgroundColor = "var(--primary)";
+            btn.style.color = "var(--black)";
+          }, 1200);
+        });
+
+        // Eliminar Grupo
+        row.querySelector(".btn-delete-group").addEventListener("click", async () => {
+          if (confirm(`¿Estás seguro de que deseas eliminar el grupo "${group.name}"? Esta acción borrará permanentemente a los usuarios y pronósticos asociados a este grupo.`)) {
+            await deleteGroup(group.id);
+            
+            // Si el grupo eliminado era el seleccionado, cambiar al primero disponible
+            if (currentGroupId === group.id) {
+              const state = getAppState();
+              const nextGroup = state.groups[0] ? state.groups[0].id : "g1";
+              currentGroupId = nextGroup;
+              localStorage.setItem("session_group_id", nextGroup);
+              updateHeaderUI();
+            }
+
+            // Refrescar selectores y volver a renderizar todo el panel
+            populateGroupsDropdown();
+            renderAdmin();
+          }
+        });
+
+        groupsContainer.appendChild(row);
+      });
+    }
+  }
+
+  // B. RENDERIZAR LISTADO DE PARTIDOS
+  const container = document.getElementById("admin-matches-list");
+  container.innerHTML = "";
+
+  if (state.matches.length === 0) {
+    container.innerHTML = `<p class="empty-state">No hay partidos registrados.</p>`;
+    return;
+  }
+
+  state.matches.forEach(match => {
+    const card = document.createElement("div");
+    card.className = "admin-match-card";
+    card.id = `admin-card-${match.id}`;
+
+    const scoreAVal = match.scoreA !== null ? match.scoreA : "";
+    const scoreBVal = match.scoreB !== null ? match.scoreB : "";
+
+    const codeA = match.codeA || COUNTRY_CODES[match.teamA.toLowerCase().trim()];
+    const codeB = match.codeB || COUNTRY_CODES[match.teamB.toLowerCase().trim()];
+
+    const flagAAdmin = codeA 
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA}.svg" alt="${match.teamA}" style="width: 24px; height: 16px; border: 1px solid var(--black); border-radius: 2px; vertical-align: middle; margin-right: 5px;">`
+      : `<span style="margin-right: 5px;">${match.emojiA}</span>`;
+
+    const flagBAdmin = codeB 
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB}.svg" alt="${match.teamB}" style="width: 24px; height: 16px; border: 1px solid var(--black); border-radius: 2px; vertical-align: middle; margin-left: 5px; margin-right: 5px;">`
+      : `<span style="margin-left: 5px; margin-right: 5px;">${match.emojiB}</span>`;
+
+    card.innerHTML = `
+      <div class="admin-match-details">
+        <div style="font-size: 0.8rem; color: var(--accent); font-weight: bold; margin-bottom: 5px;">
+          ${match.stage.toUpperCase()} | ${match.date}
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-weight: 800;">
+          <span style="display: inline-flex; align-items: center;">${flagAAdmin} ${match.teamA}</span>
+          <span style="color: var(--gray);">vs</span>
+          <span style="display: inline-flex; align-items: center;">${flagBAdmin} ${match.teamB}</span>
+        </div>
+      </div>
+
+      <div class="admin-match-scores" data-match-id="${match.id}">
+        <input type="number" class="score-field admin-score-a" min="0" placeholder="-" value="${scoreAVal}" style="width: 45px; height: 45px;">
+        <span style="font-weight: bold; color: var(--secondary);">:</span>
+        <input type="number" class="score-field admin-score-b" min="0" placeholder="-" value="${scoreBVal}" style="width: 45px; height: 45px;">
+        
+        <button class="comic-btn comic-btn-primary btn-save-admin-score" style="padding: 10px 15px; font-size: 0.9rem; margin-left: 10px;">
+          OK
+        </button>
+      </div>
+    `;
+
+    // Asignar evento al botón de guardado individual de resultado real
+    card.querySelector(".btn-save-admin-score").addEventListener("click", async () => {
+      const inputA = card.querySelector(".admin-score-a").value;
+      const inputB = card.querySelector(".admin-score-b").value;
+
+      if (inputA === "" || inputB === "") {
+        // Restaurar a pendiente
+        await updateMatchResult(match.id, null, null);
+        alert(`Partido ${match.teamA} vs ${match.teamB} devuelto a PENDIENTE.`);
+      } else {
+        await updateMatchResult(match.id, parseInt(inputA), parseInt(inputB));
+        
+        // Efecto visual rápido de guardado exitoso en el botón
+        const btn = card.querySelector(".btn-save-admin-score");
+        const originalText = btn.textContent;
+        btn.textContent = "✔";
+        btn.style.backgroundColor = "var(--accent)";
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.backgroundColor = "var(--primary)";
+        }, 1000);
+      }
+      
+      // Volver a cargar el listado del admin para refrescar valores
+      renderAdmin();
+    });
+
+    container.appendChild(card);
+  });
+}
