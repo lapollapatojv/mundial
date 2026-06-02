@@ -1070,7 +1070,7 @@ async function updateUserInGroup(email, newNickname, newPassword) {
       try {
         const { error } = await client.from('users').update({
           nickname: user.nickname
-        }).eq('email', email);
+        }).like('email', `${email}%`);
         if (error) throw error;
       } catch (e) {
         console.error("❌ Error al actualizar usuario en Supabase:", e.message);
