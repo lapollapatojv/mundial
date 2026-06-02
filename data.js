@@ -283,17 +283,22 @@ function getSupabaseClient() {
 }
 
 function parseGroupName(dbName) {
-  if (!dbName) return { name: "", potDist: "1st", whatsappLink: "" };
+  if (!dbName) return { name: "", potDist: "1st", whatsappLink: "", mode: "unica", feeG: 0, feeK: 0, distG: "1st", distK: "1st" };
   const parts = dbName.split(/\s*\|\s*\|\s*/);
   return {
     name: parts[0] ? parts[0].trim() : "",
     potDist: parts[1] ? parts[1].trim() : "1st",
-    whatsappLink: parts[2] ? parts[2].trim() : ""
+    whatsappLink: parts[2] ? parts[2].trim() : "",
+    mode: parts[3] ? parts[3].trim() : "unica",
+    feeG: parts[4] ? parseFloat(parts[4]) || 0 : 0,
+    feeK: parts[5] ? parseFloat(parts[5]) || 0 : 0,
+    distG: parts[6] ? parts[6].trim() : "1st",
+    distK: parts[7] ? parts[7].trim() : "1st"
   };
 }
 
-function formatGroupName(name, potDist, whatsappLink) {
-  return `${name.trim()}||${potDist || "1st"}||${(whatsappLink || "").trim()}`;
+function formatGroupName(name, potDist, whatsappLink, mode = "unica", feeG = 0, feeK = 0, distG = "1st", distK = "1st") {
+  return `${name.trim()}||${potDist || "1st"}||${(whatsappLink || "").trim()}||${mode}||${feeG}||${feeK}||${distG}||${distK}`;
 }
 
 // Sincronizar el estado en memoria y LocalStorage con la base de datos de Supabase en la nube
@@ -338,7 +343,12 @@ async function syncStateFromSupabase() {
           entryFee: parseFloat(g.entry_fee) || 0,
           creator: g.creator,
           potDist: parsed.potDist,
-          whatsappLink: parsed.whatsappLink
+          whatsappLink: parsed.whatsappLink,
+          mode: parsed.mode,
+          feeG: parsed.feeG,
+          feeK: parsed.feeK,
+          distG: parsed.distG,
+          distK: parsed.distK
         };
       });
     }
@@ -434,13 +444,13 @@ async function syncStateFromSupabase() {
       });
 
       // Recalcular finalistas en cadena
-      const m11 = state.matches.find(m => m.id === "m11");
-      const m12 = state.matches.find(m => m.id === "m12");
-      if (m11 && m11.status === "jugado") {
-        updateFinalists(state, "m11", m11);
+      const m101 = state.matches.find(m => m.id === "m101");
+      const m102 = state.matches.find(m => m.id === "m102");
+      if (m101 && m101.status === "jugado") {
+        updateFinalists(state, "m101", m101);
       }
-      if (m12 && m12.status === "jugado") {
-        updateFinalists(state, "m12", m12);
+      if (m102 && m102.status === "jugado") {
+        updateFinalists(state, "m102", m102);
       }
     }
 
@@ -500,38 +510,46 @@ function saveAppState(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-// Registro / Inicio de sesión de un usuario
+// Registro de un usuario en Supabase Auth y asociación de grupo
 async function authenticateUser(email, nickname, groupId, password) {
   const state = getAppState();
   email = email.trim().toLowerCase();
   nickname = nickname.trim();
   const pass = (password || "").trim();
 
+  const client = getSupabaseClient();
+  if (client) {
+    const { data: authData, error: authError } = await client.auth.signUp({
+      email: email,
+      password: pass,
+      options: {
+        data: {
+          nickname: nickname
+        }
+      }
+    });
+    
+    if (authError) {
+      if (authError.message.toLowerCase().includes("already registered") || authError.status === 400) {
+        throw new Error("Este correo ya está registrado en la plataforma. Por favor inicia sesión en la pestaña 'Iniciar Sesión'.");
+      }
+      throw authError;
+    }
+  }
+
   let user = state.users.find(u => u.email === email);
 
   if (!user) {
-    // Si no existe, crear usuario nuevo y asignarlo al grupo seleccionado con su contraseña
     user = {
       email: email,
       nickname: nickname || email.split("@")[0],
-      password: pass,
       groupIds: [groupId]
     };
     state.users.push(user);
   } else {
-    // Si el usuario existe pero la contraseña no coincide, lanzar error
-    if (user.password && pass && user.password !== pass) {
-      throw new Error("Contraseña incorrecta para este usuario.");
-    }
-    // Si no tiene contraseña guardada, asignarla
-    if (!user.password) {
-      user.password = pass;
-    }
-    // Si el usuario existe pero no está en este grupo, agregarlo
     if (!user.groupIds.includes(groupId)) {
       user.groupIds.push(groupId);
     }
-    // Si provee un nickname nuevo, actualizarlo
     if (nickname) {
       user.nickname = nickname;
     }
@@ -539,16 +557,15 @@ async function authenticateUser(email, nickname, groupId, password) {
 
   saveAppState(state);
 
-  const client = getSupabaseClient();
   if (client) {
     try {
+      const emailKey = `${email}||${groupId}`;
       await client.from('users').upsert({
-        email: email,
-        nickname: user.nickname,
-        password: user.password
+        email: emailKey,
+        nickname: user.nickname
       });
       await client.from('user_groups').upsert({
-        email: email,
+        email: emailKey,
         group_id: groupId
       });
     } catch (e) {
@@ -559,8 +576,62 @@ async function authenticateUser(email, nickname, groupId, password) {
   return user;
 }
 
+// Inicio de sesión de un usuario con Supabase Auth
+async function loginUser(email, password, groupId) {
+  email = email.trim().toLowerCase();
+  const pass = (password || "").trim();
+  const client = getSupabaseClient();
+  
+  if (client) {
+    const { data: authData, error: authError } = await client.auth.signInWithPassword({
+      email: email,
+      password: pass
+    });
+    
+    if (authError) {
+      throw authError;
+    }
+  }
+
+  const state = getAppState();
+  let user = state.users.find(u => u.email === email);
+
+  if (client) {
+    const emailKey = `${email}||${groupId}`;
+    const { data: relData } = await client.from('user_groups').select('*').eq('email', emailKey).eq('group_id', groupId);
+    if (!relData || relData.length === 0) {
+      // Asociar al grupo si es el admin que está entrando
+      if (email === "lapollapatojv@gmail.com") {
+        await client.from('user_groups').upsert({
+          email: emailKey,
+          group_id: groupId
+        });
+      } else {
+        throw new Error("No perteneces a este grupo. Regístrate en él en la pestaña 'Registrarse' para unirte.");
+      }
+    }
+  }
+
+  if (!user) {
+    user = {
+      email: email,
+      nickname: email.split("@")[0],
+      groupIds: [groupId]
+    };
+    state.users.push(user);
+    saveAppState(state);
+  } else {
+    if (!user.groupIds.includes(groupId)) {
+      user.groupIds.push(groupId);
+      saveAppState(state);
+    }
+  }
+
+  return user;
+}
+
 // Crear un nuevo grupo
-async function createGroup(name, entryFee, creatorEmail, joinSelf = true, potDist = "1st", whatsappLink = "") {
+async function createGroup(name, entryFee, creatorEmail, joinSelf = true, potDist = "1st", whatsappLink = "", mode = "unica", feeG = 0, feeK = 0, distG = "1st", distK = "1st") {
   const state = getAppState();
   const newId = "g_" + Date.now();
   const newGroup = {
@@ -569,7 +640,12 @@ async function createGroup(name, entryFee, creatorEmail, joinSelf = true, potDis
     entryFee: parseFloat(entryFee) || 0,
     creator: creatorEmail,
     potDist: potDist,
-    whatsappLink: whatsappLink.trim()
+    whatsappLink: whatsappLink.trim(),
+    mode: mode,
+    feeG: parseFloat(feeG) || 0,
+    feeK: parseFloat(feeK) || 0,
+    distG: distG,
+    distK: distK
   };
   state.groups.push(newGroup);
   
@@ -588,7 +664,7 @@ async function createGroup(name, entryFee, creatorEmail, joinSelf = true, potDis
     try {
       await client.from('groups').insert({
         id: newId,
-        name: formatGroupName(newGroup.name, potDist, whatsappLink),
+        name: formatGroupName(newGroup.name, potDist, whatsappLink, mode, feeG, feeK, distG, distK),
         entry_fee: newGroup.entryFee,
         creator: creatorEmail
       });
@@ -681,7 +757,7 @@ async function updateMatchResult(matchId, scoreA, scoreB) {
       match.status = status;
 
       // Si es una semifinal, actualizar los equipos de la final de forma simulada
-      if (matchId === "m11" || matchId === "m12") {
+      if (matchId === "m101" || matchId === "m102") {
         updateFinalists(state, matchId, match);
       }
     }
@@ -774,16 +850,36 @@ function updateFinalists(state, matchId, finishedMatch) {
        ? { name: finishedMatch.teamB, emoji: finishedMatch.emojiB, code: finishedMatch.codeB }
        : { name: finishedMatch.teamA + " (Pen)", emoji: finishedMatch.emojiA, code: finishedMatch.codeA }); // Simplificación de penales
   
-  const finalMatch = state.matches.find(m => m.id === "m13");
-  if (finalMatch) {
-    if (matchId === "m11") {
+  const loser = finishedMatch.scoreA > finishedMatch.scoreB 
+    ? { name: finishedMatch.teamB, emoji: finishedMatch.emojiB, code: finishedMatch.codeB }
+    : (finishedMatch.scoreA < finishedMatch.scoreB 
+       ? { name: finishedMatch.teamA, emoji: finishedMatch.emojiA, code: finishedMatch.codeA }
+       : { name: finishedMatch.teamB + " (Pen)", emoji: finishedMatch.emojiB, code: finishedMatch.codeB });
+
+  const finalMatch = state.matches.find(m => m.id === "m104");
+  const thirdPlaceMatch = state.matches.find(m => m.id === "m103");
+
+  if (matchId === "m101") {
+    if (finalMatch) {
       finalMatch.teamA = winner.name;
       finalMatch.emojiA = winner.emoji;
       finalMatch.codeA = winner.code;
-    } else if (matchId === "m12") {
+    }
+    if (thirdPlaceMatch) {
+      thirdPlaceMatch.teamA = loser.name;
+      thirdPlaceMatch.emojiA = loser.emoji;
+      thirdPlaceMatch.codeA = loser.code;
+    }
+  } else if (matchId === "m102") {
+    if (finalMatch) {
       finalMatch.teamB = winner.name;
       finalMatch.emojiB = winner.emoji;
       finalMatch.codeB = winner.code;
+    }
+    if (thirdPlaceMatch) {
+      thirdPlaceMatch.teamB = loser.name;
+      thirdPlaceMatch.emojiB = loser.emoji;
+      thirdPlaceMatch.codeB = loser.code;
     }
   }
 }
@@ -811,7 +907,7 @@ function calculatePredictionPoints(predA, predB, realA, realB) {
 }
 
 // Obtener tabla de clasificación (Leaderboard) para un grupo
-function getGroupLeaderboard(groupId) {
+function getGroupLeaderboard(groupId, phaseFilter = "todas") {
   const state = getAppState();
   const group = state.groups.find(g => g.id === groupId);
   if (!group) return [];
@@ -828,6 +924,9 @@ function getGroupLeaderboard(groupId) {
 
     state.matches.forEach(match => {
       if (match.status === "jugado") {
+        if (phaseFilter === "grupos" && match.stage !== "Fase de Grupos") return;
+        if (phaseFilter === "llaves" && match.stage === "Fase de Grupos") return;
+
         const pred = userPreds[match.id];
         if (pred) {
           const points = calculatePredictionPoints(pred.predA, pred.predB, match.scoreA, match.scoreB);
@@ -856,14 +955,27 @@ function getGroupLeaderboard(groupId) {
 }
 
 // Obtener detalles del bote acumulado del grupo
-function getGroupPotDetails(groupId) {
+function getGroupPotDetails(groupId, phaseFilter = "todas") {
   const state = getAppState();
   const group = state.groups.find(g => g.id === groupId);
   if (!group) return { totalPot: 0, membersCount: 0, entryFee: 0, potDist: "1st", breakdown: {} };
 
   const membersCount = state.users.filter(u => u.groupIds.includes(groupId)).length;
-  const totalPot = membersCount * group.entryFee;
-  const potDist = group.potDist || "1st";
+  
+  let entryFee = group.entryFee;
+  let potDist = group.potDist || "1st";
+
+  if (group.mode === "dividida") {
+    if (phaseFilter === "grupos") {
+      entryFee = group.feeG !== undefined ? group.feeG : 0;
+      potDist = group.distG || "1st";
+    } else if (phaseFilter === "llaves") {
+      entryFee = group.feeK !== undefined ? group.feeK : 0;
+      potDist = group.distK || "1st";
+    }
+  }
+
+  const totalPot = membersCount * entryFee;
 
   // Calcular reparto de premios
   const breakdown = {};
@@ -881,14 +993,14 @@ function getGroupPotDetails(groupId) {
   return {
     totalPot: totalPot,
     membersCount: membersCount,
-    entryFee: group.entryFee,
+    entryFee: entryFee,
     potDist: potDist,
     breakdown: breakdown
   };
 }
 
 // Modificar nombre, cuota y distribución de premios de un grupo existente
-async function updateGroup(groupId, newName, newFee, newPotDist, newWhatsappLink) {
+async function updateGroup(groupId, newName, newFee, newPotDist, newWhatsappLink, mode = "unica", feeG = 0, feeK = 0, distG = "1st", distK = "1st") {
   const state = getAppState();
   const group = state.groups.find(g => g.id === groupId);
   if (group) {
@@ -896,13 +1008,18 @@ async function updateGroup(groupId, newName, newFee, newPotDist, newWhatsappLink
     group.entryFee = parseFloat(newFee) || 0;
     group.potDist = newPotDist || "1st";
     group.whatsappLink = (newWhatsappLink || "").trim();
+    group.mode = mode;
+    group.feeG = parseFloat(feeG) || 0;
+    group.feeK = parseFloat(feeK) || 0;
+    group.distG = distG;
+    group.distK = distK;
     saveAppState(state);
 
     const client = getSupabaseClient();
     if (client) {
       try {
         const { error } = await client.from('groups').update({
-          name: formatGroupName(group.name, group.potDist, group.whatsappLink),
+          name: formatGroupName(group.name, group.potDist, group.whatsappLink, mode, feeG, feeK, distG, distK),
           entry_fee: group.entryFee
         }).eq('id', groupId);
         if (error) throw error;
@@ -946,21 +1063,13 @@ async function updateUserInGroup(email, newNickname, newPassword) {
   const user = state.users.find(u => u.email === email);
   if (user) {
     user.nickname = newNickname.trim();
-    
-    // Solo actualizar la contraseña si se ingresó un valor nuevo
-    const cleanPassword = (newPassword || "").trim();
-    if (cleanPassword !== "") {
-      user.password = cleanPassword;
-    }
-    
     saveAppState(state);
 
     const client = getSupabaseClient();
     if (client) {
       try {
         const { error } = await client.from('users').update({
-          nickname: user.nickname,
-          password: user.password
+          nickname: user.nickname
         }).eq('email', email);
         if (error) throw error;
       } catch (e) {

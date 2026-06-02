@@ -29,6 +29,7 @@ const COUNTRY_CODES = {
 // Estado de la sesión actual
 let currentUser = null;
 let currentGroupId = null;
+let currentDashboardPhaseFilter = "grupos";
 
 // Elementos del DOM
 const headerLogo = document.getElementById("header-logo");
@@ -100,12 +101,21 @@ async function initApp() {
   setupAuthTabs();
 
   // Restaurar sesión si existe
-  const savedEmail = localStorage.getItem("session_user_email");
+  const client = getSupabaseClient();
+  let sessionUser = null;
+  if (client) {
+    const { data: sessionData } = await client.auth.getSession();
+    if (sessionData && sessionData.session) {
+      sessionUser = sessionData.session.user;
+    }
+  }
+
   const savedGroupId = localStorage.getItem("session_group_id");
 
-  if (savedEmail && savedGroupId) {
+  if (sessionUser && savedGroupId) {
+    const email = sessionUser.email.toLowerCase();
     const state = getAppState();
-    const user = state.users.find(u => u.email === savedEmail);
+    const user = state.users.find(u => u.email === email);
     const group = state.groups.find(g => g.id === savedGroupId);
     
     if (user && group) {
@@ -167,8 +177,11 @@ function setupEventListeners() {
   });
   
   // Salir
-  btnLogout.addEventListener("click", () => {
-    localStorage.removeItem("session_user_email");
+  btnLogout.addEventListener("click", async () => {
+    const client = getSupabaseClient();
+    if (client) {
+      await client.auth.signOut();
+    }
     localStorage.removeItem("session_group_id");
     currentUser = null;
     currentGroupId = null;
@@ -177,10 +190,10 @@ function setupEventListeners() {
   });
 
   // Login de Usuario
-  formUserLogin.addEventListener("submit", (e) => {
+  formUserLogin.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = loginEmail.value.trim().toLowerCase();
-    const password = loginPassword.value.trim();
+    const password = loginPassword.value;
     const groupId = loginGroupSelect.value;
 
     if (!groupId) {
@@ -188,33 +201,19 @@ function setupEventListeners() {
       return;
     }
 
-    const state = getAppState();
-    const user = state.users.find(u => u.email === email);
+    try {
+      const user = await loginUser(email, password, groupId);
+      currentUser = user;
+      currentGroupId = groupId;
 
-    if (!user) {
-      alert("Este correo no está registrado. Ve a la pestaña 'Registrarse' para crear tu cuenta y unirte al grupo.");
-      return;
+      // Guardar sesión
+      localStorage.setItem("session_group_id", groupId);
+
+      updateHeaderUI();
+      switchView("dashboard");
+    } catch (err) {
+      alert("Error al iniciar sesión: " + err.message);
     }
-
-    if (user.password && user.password !== password) {
-      alert("Contraseña incorrecta.");
-      return;
-    }
-
-    if (!user.groupIds || !user.groupIds.includes(groupId)) {
-      alert("No perteneces a este grupo. Regístrate en él en la pestaña 'Registrarse' para unirte.");
-      return;
-    }
-
-    currentUser = user;
-    currentGroupId = groupId;
-
-    // Guardar sesión
-    localStorage.setItem("session_user_email", email);
-    localStorage.setItem("session_group_id", groupId);
-
-    updateHeaderUI();
-    switchView("dashboard");
   });
 
   // Registro de Usuario
@@ -222,7 +221,7 @@ function setupEventListeners() {
     e.preventDefault();
     const email = registerEmail.value.trim().toLowerCase();
     const nickname = registerNickname.value.trim();
-    const password = registerPassword.value.trim();
+    const password = registerPassword.value;
     const groupId = registerGroupSelect.value;
 
     if (!groupId) {
@@ -241,60 +240,106 @@ function setupEventListeners() {
       currentGroupId = groupId;
 
       // Guardar sesión
-      localStorage.setItem("session_user_email", user.email);
       localStorage.setItem("session_group_id", groupId);
 
       updateHeaderUI();
       switchView("dashboard");
     } catch (err) {
-      alert(err.message);
+      alert("Error en el registro: " + err.message);
     }
   });
 
   // Login de Admin
-  formAdminLogin.addEventListener("submit", (e) => {
+  formAdminLogin.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = adminEmail.value.trim().toLowerCase();
     const password = adminPassword.value;
 
-    if (email !== "lapollapatojv@gmail.com" || password !== "Jambalaya.4910519") {
-      alert("Credenciales de administrador inválidas.");
+    if (email !== "lapollapatojv@gmail.com") {
+      alert("Este correo no tiene permisos de administrador.");
       return;
     }
 
-    const state = getAppState();
-    let adminUser = state.users.find(u => u.email === "lapollapatojv@gmail.com");
+    try {
+      const client = getSupabaseClient();
+      if (client) {
+        const { error } = await client.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+        if (error) throw error;
+      }
 
-    if (!adminUser) {
-      adminUser = {
-        email: "lapollapatojv@gmail.com",
-        nickname: "Organizador (Admin)",
-        groupIds: ["g1", "g2", "g3"]
-      };
-      state.users.push(adminUser);
-      saveAppState(state);
+      const state = getAppState();
+      let adminUser = state.users.find(u => u.email === "lapollapatojv@gmail.com");
+
+      if (!adminUser) {
+        adminUser = {
+          email: "lapollapatojv@gmail.com",
+          nickname: "Organizador (Admin)",
+          groupIds: []
+        };
+        state.users.push(adminUser);
+        saveAppState(state);
+      }
+
+      const activeGroup = state.groups[0] ? state.groups[0].id : "g1";
+
+      currentUser = adminUser;
+      currentGroupId = activeGroup;
+
+      // Guardar sesión
+      localStorage.setItem("session_group_id", activeGroup);
+
+      updateHeaderUI();
+      switchView("dashboard");
+    } catch (err) {
+      alert("Error al iniciar sesión de administrador: " + err.message);
     }
-
-    const activeGroup = state.groups[0] ? state.groups[0].id : "g1";
-
-    currentUser = adminUser;
-    currentGroupId = activeGroup;
-
-    // Guardar sesión
-    localStorage.setItem("session_user_email", "lapollapatojv@gmail.com");
-    localStorage.setItem("session_group_id", activeGroup);
-
-    updateHeaderUI();
-    switchView("dashboard");
   });
+
+  // Control de visibilidad para creación de grupo por fases
+  const groupModeSelect = document.getElementById("admin-new-group-mode");
+  const wrapperSingle = document.getElementById("wrapper-single-phase-fields");
+  const wrapperSplit = document.getElementById("wrapper-split-phase-fields");
+
+  if (groupModeSelect && wrapperSingle && wrapperSplit) {
+    groupModeSelect.addEventListener("change", () => {
+      if (groupModeSelect.value === "dividida") {
+        wrapperSingle.classList.add("d-none");
+        wrapperSplit.classList.remove("d-none");
+      } else {
+        wrapperSingle.classList.remove("d-none");
+        wrapperSplit.classList.add("d-none");
+      }
+    });
+  }
 
   // Creación de Grupo por el Admin (en panel admin)
   formAdminCreateGroup.addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = adminNewGroupName.value.trim();
-    const fee = parseFloat(adminNewGroupFee.value) || 0;
-    const potDist = adminNewGroupDist ? adminNewGroupDist.value : "1st";
+    const mode = groupModeSelect ? groupModeSelect.value : "unica";
     const whatsappLink = adminNewGroupWhatsapp ? adminNewGroupWhatsapp.value.trim() : "";
+    
+    let fee = 0;
+    let potDist = "1st";
+    let feeG = 0;
+    let feeK = 0;
+    let distG = "1st";
+    let distK = "1st";
+
+    if (mode === "dividida") {
+      feeG = parseFloat(document.getElementById("admin-new-group-fee-g").value) || 0;
+      feeK = parseFloat(document.getElementById("admin-new-group-fee-k").value) || 0;
+      distG = document.getElementById("admin-new-group-dist-g").value;
+      distK = document.getElementById("admin-new-group-dist-k").value;
+      fee = feeG + feeK;
+      potDist = distG; // Para fallback
+    } else {
+      fee = parseFloat(adminNewGroupFee.value) || 0;
+      potDist = adminNewGroupDist ? adminNewGroupDist.value : "1st";
+    }
 
     if (!name) {
       alert("Por favor ingresa un nombre para el grupo.");
@@ -304,7 +349,7 @@ function setupEventListeners() {
     const joinSelf = adminGroupJoinSelf ? adminGroupJoinSelf.checked : true;
 
     // Crear el grupo
-    const newGroup = await createGroup(name, fee, "lapollapatojv@gmail.com", joinSelf, potDist, whatsappLink);
+    const newGroup = await createGroup(name, fee, "lapollapatojv@gmail.com", joinSelf, potDist, whatsappLink, mode, feeG, feeK, distG, distK);
 
     // Rellenar dropdowns de grupo de login/registro
     populateGroupsDropdown();
@@ -318,8 +363,12 @@ function setupEventListeners() {
       updateHeaderUI();
     }
 
-    // Reset del formulario
+    // Reset del formulario y campos ocultos
     formAdminCreateGroup.reset();
+    if (wrapperSingle && wrapperSplit) {
+      wrapperSingle.classList.remove("d-none");
+      wrapperSplit.classList.add("d-none");
+    }
 
     alert(`Grupo "${newGroup.name}" creado con éxito. ¡Los usuarios ya se pueden registrar en él!`);
   });
@@ -441,6 +490,7 @@ function updateHeaderUI() {
           const newGroupId = e.target.value;
           currentGroupId = newGroupId;
           localStorage.setItem("session_group_id", newGroupId);
+          currentDashboardPhaseFilter = "grupos";
           
           // Refrescar el header y las vistas activas
           updateHeaderUI();
@@ -509,8 +559,50 @@ function switchView(viewName) {
 function renderDashboard() {
   if (!currentGroupId || !currentUser) return;
 
-  const potDetails = getGroupPotDetails(currentGroupId);
-  const leaderboard = getGroupLeaderboard(currentGroupId);
+  const state = getAppState();
+  const group = state.groups.find(g => g.id === currentGroupId);
+  
+  let phaseFilter = "todas";
+  const tabsContainer = document.getElementById("dashboard-phase-tabs-container");
+
+  if (group && group.mode === "dividida") {
+    if (currentDashboardPhaseFilter !== "grupos" && currentDashboardPhaseFilter !== "llaves") {
+      currentDashboardPhaseFilter = "grupos";
+    }
+    phaseFilter = currentDashboardPhaseFilter;
+    
+    if (tabsContainer) {
+      tabsContainer.classList.remove("d-none");
+      const btnGrupos = document.getElementById("btn-phase-tab-grupos");
+      const btnLlaves = document.getElementById("btn-phase-tab-llaves");
+      
+      if (btnGrupos && btnLlaves) {
+        if (currentDashboardPhaseFilter === "grupos") {
+          btnGrupos.className = "comic-btn comic-btn-primary";
+          btnLlaves.className = "comic-btn comic-btn-outline";
+        } else {
+          btnGrupos.className = "comic-btn comic-btn-outline";
+          btnLlaves.className = "comic-btn comic-btn-primary";
+        }
+        
+        btnGrupos.onclick = () => {
+          currentDashboardPhaseFilter = "grupos";
+          renderDashboard();
+        };
+        btnLlaves.onclick = () => {
+          currentDashboardPhaseFilter = "llaves";
+          renderDashboard();
+        };
+      }
+    }
+  } else {
+    if (tabsContainer) {
+      tabsContainer.classList.add("d-none");
+    }
+  }
+
+  const potDetails = getGroupPotDetails(currentGroupId, phaseFilter);
+  const leaderboard = getGroupLeaderboard(currentGroupId, phaseFilter);
   
   // Actualizar Bote
   document.getElementById("pot-total-display").textContent = `Bs. ${potDetails.totalPot.toFixed(2)}`;
@@ -538,8 +630,6 @@ function renderDashboard() {
   }
 
   // Vincular enlace de WhatsApp del grupo si existe
-  const state = getAppState();
-  const group = state.groups.find(g => g.id === currentGroupId);
   const whatsappContainer = document.getElementById("whatsapp-link-container");
   const whatsappHref = document.getElementById("group-whatsapp-href");
   if (whatsappContainer && whatsappHref) {
@@ -980,6 +1070,7 @@ function renderAdmin() {
       groupsContainer.innerHTML = `<p class="empty-state">No hay grupos de juego registrados.</p>`;
     } else {
       state.groups.forEach(group => {
+        const isDivided = group.mode === "dividida";
         const row = document.createElement("div");
         row.className = "admin-group-row";
         row.style.display = "flex";
@@ -992,26 +1083,68 @@ function renderAdmin() {
 
         row.innerHTML = `
           <div style="flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;">
-            <div style="flex: 2; min-width: 180px;">
+            <div style="flex: 2; min-width: 150px;">
               <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Nombre del Grupo</span>
               <input type="text" class="comic-input edit-group-name" value="${group.name}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
             </div>
-            <div style="width: 90px;">
-              <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Cuota</span>
-              <input type="number" class="comic-input edit-group-fee" min="0" value="${group.entryFee}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
-            </div>
-            <div style="width: 130px;">
-              <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Premios</span>
-              <select class="comic-input edit-group-dist" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
-                <option value="1st" ${group.potDist === '1st' ? 'selected' : ''}>🥇 100% 1er</option>
-                <option value="1st-2nd" ${group.potDist === '1st-2nd' ? 'selected' : ''}>🥈 70% / 30%</option>
-                <option value="1st-2nd-3rd" ${group.potDist === '1st-2nd-3rd' ? 'selected' : ''}>🥉 60% / 30% / 10%</option>
+            
+            <div style="width: 120px;">
+              <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Modo de Juego</span>
+              <select class="comic-input edit-group-mode" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+                <option value="unica" ${group.mode === 'unica' ? 'selected' : ''}>Fase Única</option>
+                <option value="dividida" ${group.mode === 'dividida' ? 'selected' : ''}>Fases Divididas</option>
               </select>
             </div>
-            <div style="flex: 2; min-width: 180px;">
+
+            <!-- Contenedor Única -->
+            <div class="edit-single-phase-fields ${isDivided ? 'd-none' : ''}" style="display: flex; gap: 10px;">
+              <div style="width: 80px;">
+                <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Cuota</span>
+                <input type="number" class="comic-input edit-group-fee" min="0" value="${group.entryFee}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+              </div>
+              <div style="width: 120px;">
+                <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Premios</span>
+                <select class="comic-input edit-group-dist" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+                  <option value="1st" ${group.potDist === '1st' ? 'selected' : ''}>🥇 100% 1er</option>
+                  <option value="1st-2nd" ${group.potDist === '1st-2nd' ? 'selected' : ''}>🥈 70% / 30%</option>
+                  <option value="1st-2nd-3rd" ${group.potDist === '1st-2nd-3rd' ? 'selected' : ''}>🥉 60% / 30% / 10%</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Contenedor Dividida -->
+            <div class="edit-split-phase-fields ${isDivided ? '' : 'd-none'}" style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <div style="width: 80px;">
+                <span style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 2px;">Cuota G</span>
+                <input type="number" class="comic-input edit-group-fee-g" min="0" value="${group.feeG !== undefined ? group.feeG : 10}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+              </div>
+              <div style="width: 120px;">
+                <span style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 2px;">Premios G</span>
+                <select class="comic-input edit-group-dist-g" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+                  <option value="1st" ${group.distG === '1st' ? 'selected' : ''}>🥇 100% 1er</option>
+                  <option value="1st-2nd" ${group.distG === '1st-2nd' ? 'selected' : ''}>🥈 70% / 30%</option>
+                  <option value="1st-2nd-3rd" ${group.distG === '1st-2nd-3rd' ? 'selected' : ''}>🥉 60% / 30% / 10%</option>
+                </select>
+              </div>
+              <div style="width: 80px;">
+                <span style="font-size: 0.75rem; color: var(--secondary); display: block; margin-bottom: 2px;">Cuota Ll</span>
+                <input type="number" class="comic-input edit-group-fee-k" min="0" value="${group.feeK !== undefined ? group.feeK : 10}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+              </div>
+              <div style="width: 120px;">
+                <span style="font-size: 0.75rem; color: var(--secondary); display: block; margin-bottom: 2px;">Premios Ll</span>
+                <select class="comic-input edit-group-dist-k" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
+                  <option value="1st" ${group.distK === '1st' ? 'selected' : ''}>🥇 100% 1er</option>
+                  <option value="1st-2nd" ${group.distK === '1st-2nd' ? 'selected' : ''}>🥈 70% / 30%</option>
+                  <option value="1st-2nd-3rd" ${group.distK === '1st-2nd-3rd' ? 'selected' : ''}>🥉 60% / 30% / 10%</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="flex: 2; min-width: 150px;">
               <span style="font-size: 0.75rem; color: var(--gray); display: block; margin-bottom: 2px;">Enlace WhatsApp</span>
               <input type="url" class="comic-input edit-group-whatsapp" value="${group.whatsappLink || ''}" placeholder="https://chat.whatsapp.com/..." style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
             </div>
+            
             <div style="display: flex; gap: 5px;">
               <button class="comic-btn comic-btn-primary btn-update-group" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px; height: 38px;">
                 Guardar 💾
@@ -1023,19 +1156,52 @@ function renderAdmin() {
           </div>
         `;
 
+        // Toggle de campos en el listado
+        const modeSelect = row.querySelector(".edit-group-mode");
+        const divSingle = row.querySelector(".edit-single-phase-fields");
+        const divSplit = row.querySelector(".edit-split-phase-fields");
+        
+        modeSelect.addEventListener("change", () => {
+          if (modeSelect.value === "dividida") {
+            divSingle.classList.add("d-none");
+            divSplit.classList.remove("d-none");
+          } else {
+            divSingle.classList.remove("d-none");
+            divSplit.classList.add("d-none");
+          }
+        });
+
         // Modificar Grupo
         row.querySelector(".btn-update-group").addEventListener("click", async () => {
           const newName = row.querySelector(".edit-group-name").value.trim();
-          const newFee = parseFloat(row.querySelector(".edit-group-fee").value) || 0;
-          const newPotDist = row.querySelector(".edit-group-dist").value;
+          const newMode = modeSelect.value;
           const newWhatsappLink = row.querySelector(".edit-group-whatsapp").value.trim();
+
+          let newFee = 0;
+          let newPotDist = "1st";
+          let newFeeG = 0;
+          let newFeeK = 0;
+          let newDistG = "1st";
+          let newDistK = "1st";
+
+          if (newMode === "dividida") {
+            newFeeG = parseFloat(row.querySelector(".edit-group-fee-g").value) || 0;
+            newFeeK = parseFloat(row.querySelector(".edit-group-fee-k").value) || 0;
+            newDistG = row.querySelector(".edit-group-dist-g").value;
+            newDistK = row.querySelector(".edit-group-dist-k").value;
+            newFee = newFeeG + newFeeK;
+            newPotDist = newDistG; // fallback
+          } else {
+            newFee = parseFloat(row.querySelector(".edit-group-fee").value) || 0;
+            newPotDist = row.querySelector(".edit-group-dist").value;
+          }
 
           if (!newName) {
             alert("El nombre del grupo no puede estar vacío.");
             return;
           }
 
-          await updateGroup(group.id, newName, newFee, newPotDist, newWhatsappLink);
+          await updateGroup(group.id, newName, newFee, newPotDist, newWhatsappLink, newMode, newFeeG, newFeeK, newDistG, newDistK);
           
           // Refrescar selectores de Auth
           populateGroupsDropdown();
@@ -1168,6 +1334,7 @@ function renderAdmin() {
         await updateMatchResult(match.id, null, null);
         alert(`Partido devuelto a PENDIENTE.`);
       } else {
+        const isUpdate = match.status === "jugado";
         await updateMatchResult(match.id, parseInt(inputA), parseInt(inputB));
         
         // Efecto visual rápido de guardado exitoso en el botón
@@ -1179,6 +1346,12 @@ function renderAdmin() {
           btn.textContent = originalText;
           btn.style.backgroundColor = "var(--primary)";
         }, 1000);
+
+        if (isUpdate) {
+          alert(`¡El resultado del partido se ha modificado correctamente! La tabla de clasificación y los puntos de todos los usuarios se han recalculado.`);
+        } else {
+          alert(`¡Resultado guardado con éxito!`);
+        }
       }
       
       // Volver a cargar el listado del admin para refrescar valores
@@ -1232,10 +1405,6 @@ function renderAdminUsersList() {
         <span style="font-size: 0.85rem; color: var(--gray); display: block;">Apodo</span>
         <input type="text" class="comic-input edit-user-nickname" value="${user.nickname}" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
       </div>
-      <div style="flex: 1.5; min-width: 130px;">
-        <span style="font-size: 0.85rem; color: var(--gray); display: block;">Contraseña</span>
-        <input type="password" class="comic-input edit-user-password" value="" placeholder="Escribir para cambiar" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.9rem;">
-      </div>
       <div style="display: flex; gap: 5px; align-items: flex-end; padding-top: 15px;">
         <button class="comic-btn comic-btn-primary btn-update-user" style="padding: 6px 12px; font-size: 0.85rem; border-width: 2px;">
           Guardar 💾
@@ -1249,15 +1418,13 @@ function renderAdminUsersList() {
     // Asignar evento de guardado
     row.querySelector(".btn-update-user").addEventListener("click", async () => {
       const newNickname = row.querySelector(".edit-user-nickname").value.trim();
-      const newPassword = row.querySelector(".edit-user-password").value.trim();
 
       if (!newNickname) {
         alert("El apodo del participante no puede estar vacío.");
         return;
       }
 
-      await updateUserInGroup(user.email, newNickname, newPassword);
-      row.querySelector(".edit-user-password").value = "";
+      await updateUserInGroup(user.email, newNickname);
 
       // Feedback visual
       const btn = row.querySelector(".btn-update-user");

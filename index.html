@@ -111,7 +111,7 @@
           </div>
           <div class="form-group">
             <label class="comic-label" for="admin-email">Correo de Administrador</label>
-            <input type="email" id="admin-email" class="comic-input" value="lapollapatojv@gmail.com" required readonly style="background: rgba(255,255,255,0.05); color: var(--gray); cursor: not-allowed;">
+            <input type="email" id="admin-email" class="comic-input" placeholder="admin@lapolla.com" required>
           </div>
           <div class="form-group">
             <label class="comic-label" for="admin-password">Contraseña</label>
@@ -133,6 +133,16 @@
       
       <!-- Columna Principal: Clasificación y Bote -->
       <div class="dashboard-main">
+        <!-- Selector de fase del dashboard (para grupos de dos fases) -->
+        <div id="dashboard-phase-tabs-container" class="d-none" style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <button id="btn-phase-tab-grupos" class="comic-btn comic-btn-primary" style="flex: 1; padding: 10px; font-size: 1rem; border-width: 2px;">
+            ⚽ Fase de Grupos
+          </button>
+          <button id="btn-phase-tab-llaves" class="comic-btn comic-btn-outline" style="flex: 1; padding: 10px; font-size: 1rem; border-width: 2px;">
+            🏆 Fase de Eliminatorias (Llaves)
+          </button>
+        </div>
+
         <!-- Marcador del Bote Acumulado -->
         <div class="pot-scoreboard">
           <div class="pot-label">🏆 Bote Total Acumulado 🏆</div>
@@ -288,17 +298,68 @@
             <label class="comic-label" for="admin-new-group-name" style="font-size: 0.8rem; margin-bottom: 4px;">Nombre del Grupo</label>
             <input type="text" id="admin-new-group-name" class="comic-input" placeholder="Ej: Amigos del Fútbol" required style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
           </div>
-          <div style="flex: 1; min-width: 100px;">
-            <label class="comic-label" for="admin-new-group-fee" style="font-size: 0.8rem; margin-bottom: 4px;">Cuota (Bs.)</label>
-            <input type="number" id="admin-new-group-fee" class="comic-input" min="0" value="10" required style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
-          </div>
           <div style="flex: 1.5; min-width: 180px;">
-            <label class="comic-label" for="admin-new-group-dist" style="font-size: 0.8rem; margin-bottom: 4px;">Premios</label>
-            <select id="admin-new-group-dist" class="comic-input comic-select" style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
-              <option value="1st">🥇 100% al 1er Lugar</option>
-              <option value="1st-2nd">🥈 70% al 1ro / 30% al 2do</option>
-              <option value="1st-2nd-3rd">🥉 60% al 1ro / 30% al 2do / 10% al 3ro</option>
+            <label class="comic-label" for="admin-new-group-mode" style="font-size: 0.8rem; margin-bottom: 4px;">Modo de Juego</label>
+            <select id="admin-new-group-mode" class="comic-input comic-select" style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+              <option value="unica">Fase Única (Tradicional)</option>
+              <option value="dividida">Dos Fases Independientes (Grupos + Llaves)</option>
             </select>
+          </div>
+
+          <!-- Campos para Fase Única (mostrados por defecto) -->
+          <div id="wrapper-single-phase-fields" style="flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 15px;">
+            <div style="flex: 1; min-width: 100px;">
+              <label class="comic-label" for="admin-new-group-fee" style="font-size: 0.8rem; margin-bottom: 4px;">Cuota (Bs.)</label>
+              <input type="number" id="admin-new-group-fee" class="comic-input" min="0" value="10" style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+            </div>
+            <div style="flex: 1.5; min-width: 180px;">
+              <label class="comic-label" for="admin-new-group-dist" style="font-size: 0.8rem; margin-bottom: 4px;">Premios</label>
+              <select id="admin-new-group-dist" class="comic-input comic-select" style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+                <option value="1st">🥇 100% al 1er Lugar</option>
+                <option value="1st-2nd">🥈 70% al 1ro / 30% al 2do</option>
+                <option value="1st-2nd-3rd">🥉 60% al 1ro / 30% al 2do / 10% al 3ro</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Campos para Fases Divididas (ocultos por defecto) -->
+          <div id="wrapper-split-phase-fields" class="d-none" style="flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 15px; border-left: 3px solid var(--accent); padding-left: 15px;">
+            <!-- Fase de Grupos -->
+            <div style="flex: 1 1 45%; min-width: 200px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-weight: bold; color: var(--primary); font-size: 0.85rem;">⚽ FASE DE GRUPOS</span>
+              <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                  <label class="comic-label" for="admin-new-group-fee-g" style="font-size: 0.75rem; margin-bottom: 4px;">Cuota (Bs.)</label>
+                  <input type="number" id="admin-new-group-fee-g" class="comic-input" min="0" value="10" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.85rem;">
+                </div>
+                <div style="flex: 1.5;">
+                  <label class="comic-label" for="admin-new-group-dist-g" style="font-size: 0.75rem; margin-bottom: 4px;">Premios</label>
+                  <select id="admin-new-group-dist-g" class="comic-input comic-select" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.85rem;">
+                    <option value="1st">🥇 100% 1er</option>
+                    <option value="1st-2nd">🥈 70% / 30%</option>
+                    <option value="1st-2nd-3rd">🥉 60% / 30% / 10%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <!-- Fase de Llaves -->
+            <div style="flex: 1 1 45%; min-width: 200px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-weight: bold; color: var(--secondary); font-size: 0.85rem;">🏆 FASE DE LLAVES</span>
+              <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                  <label class="comic-label" for="admin-new-group-fee-k" style="font-size: 0.75rem; margin-bottom: 4px;">Cuota (Bs.)</label>
+                  <input type="number" id="admin-new-group-fee-k" class="comic-input" min="0" value="10" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.85rem;">
+                </div>
+                <div style="flex: 1.5;">
+                  <label class="comic-label" for="admin-new-group-dist-k" style="font-size: 0.75rem; margin-bottom: 4px;">Premios</label>
+                  <select id="admin-new-group-dist-k" class="comic-input comic-select" style="margin-bottom: 0; padding: 6px 10px; font-size: 0.85rem;">
+                    <option value="1st">🥇 100% 1er</option>
+                    <option value="1st-2nd">🥈 70% / 30%</option>
+                    <option value="1st-2nd-3rd">🥉 60% / 30% / 10%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
           <div style="flex: 2; min-width: 180px;">
             <label class="comic-label" for="admin-new-group-whatsapp" style="font-size: 0.8rem; margin-bottom: 4px;">Enlace WhatsApp (Opcional)</label>
