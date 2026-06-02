@@ -1424,7 +1424,7 @@ function renderAdminUsersList() {
         return;
       }
 
-      await updateUserInGroup(user.email, newNickname);
+      await updateUserInGroup(user.email, newNickname, groupId);
 
       // Feedback visual
       const btn = row.querySelector(".btn-update-user");

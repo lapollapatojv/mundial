@@ -368,6 +368,11 @@ async function syncStateFromSupabase() {
             password: u.password || "",
             groupIds: []
           };
+        } else {
+          // Si el apodo de este registro es personalizado (diferente al correo) y el guardado hasta ahora es el correo, preferirlo
+          if (u.nickname && u.nickname !== cleanEmail && (userMap[cleanEmail].nickname === cleanEmail || !userMap[cleanEmail].nickname)) {
+            userMap[cleanEmail].nickname = u.nickname;
+          }
         }
         
         if (userGroupId && !userMap[cleanEmail].groupIds.includes(userGroupId)) {
@@ -1057,8 +1062,8 @@ async function deleteGroup(groupId) {
   }
 }
 
-// Actualizar apodo y contraseña de un usuario (Acción de Admin)
-async function updateUserInGroup(email, newNickname, newPassword) {
+// Actualizar apodo de un usuario (Acción de Admin)
+async function updateUserInGroup(email, newNickname, groupId) {
   const state = getAppState();
   const user = state.users.find(u => u.email === email);
   if (user) {
@@ -1068,10 +1073,25 @@ async function updateUserInGroup(email, newNickname, newPassword) {
     const client = getSupabaseClient();
     if (client) {
       try {
-        const { error } = await client.from('users').update({
-          nickname: user.nickname
-        }).like('email', `${email}%`);
-        if (error) throw error;
+        const promises = [];
+        if (user.groupIds && user.groupIds.length > 0) {
+          user.groupIds.forEach(gId => {
+            promises.push(
+              client.from('users').upsert({
+                email: `${email}||${gId}`,
+                nickname: user.nickname
+              })
+            );
+          });
+        } else {
+          promises.push(
+            client.from('users').upsert({
+              email: email,
+              nickname: user.nickname
+            })
+          );
+        }
+        await Promise.all(promises);
       } catch (e) {
         console.error("❌ Error al actualizar usuario en Supabase:", e.message);
       }
