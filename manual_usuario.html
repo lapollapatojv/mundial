@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Usuario - La Polla by patojv</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0c081e;
+      --primary: #00ff85;
+      --secondary: #ff3366;
+      --accent: #ffb800;
+      --white: #ffffff;
+      --black: #000000;
+      --gray: #8b85b1;
+      --panel-bg: rgba(25, 18, 55, 0.95);
+      --font-comic: 'Lilita One', cursive;
+      --font-sans: 'Outfit', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-color);
+      color: var(--white);
+      margin: 0;
+      padding: 40px;
+      line-height: 1.6;
+    }
+
+    /* Estilos de Impresión / PDF */
+    @media print {
+      body {
+        background-color: #ffffff;
+        color: #000000;
+        padding: 0;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .no-print {
+        display: none;
+      }
+      .comic-card {
+        background: #f8f9fa !important;
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+        color: #000000 !important;
+      }
+      h1, h2, h3 {
+        color: #000000 !important;
+      }
+      .badge-comic {
+        border-color: #000000 !important;
+      }
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .cover-page {
+      text-align: center;
+      padding: 50px 20px;
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      page-break-after: always;
+    }
+
+    .cover-img {
+      max-width: 100%;
+      height: auto;
+      border: 4px solid var(--black);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      margin-bottom: 30px;
+    }
+
+    .title-banner {
+      font-family: var(--font-comic);
+      background-color: var(--secondary);
+      border: 3px solid var(--black);
+      box-shadow: 6px 6px 0 var(--black);
+      padding: 15px 30px;
+      color: var(--white);
+      font-size: 2.8rem;
+      text-transform: uppercase;
+      text-shadow: 3px 3px 0 var(--black);
+      transform: rotate(-1.5deg);
+      margin-bottom: 20px;
+    }
+
+    .subtitle-banner {
+      font-family: var(--font-comic);
+      background-color: var(--accent);
+      border: 3px solid var(--black);
+      box-shadow: 4px 4px 0 var(--black);
+      padding: 10px 20px;
+      color: var(--black);
+      font-size: 1.5rem;
+      transform: rotate(1deg);
+      margin-bottom: 50px;
+    }
+
+    h2 {
+      font-family: var(--font-comic);
+      color: var(--primary);
+      font-size: 2rem;
+      border-bottom: 3px solid var(--black);
+      padding-bottom: 8px;
+      margin-top: 40px;
+      text-shadow: 2px 2px 0 var(--black);
+    }
+
+    h3 {
+      font-family: var(--font-comic);
+      color: var(--accent);
+      font-size: 1.3rem;
+      margin-top: 25px;
+    }
+
+    .comic-card {
+      background: var(--panel-bg);
+      border: 3px solid var(--black);
+      box-shadow: 6px 6px 0 var(--black);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+
+    .badge-comic {
+      display: inline-block;
+      background-color: var(--black);
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      padding: 4px 10px;
+      font-weight: 800;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+
+    .step-list {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .step-list li {
+      position: relative;
+      padding-left: 35px;
+      margin-bottom: 15px;
+      font-size: 1.05rem;
+    }
+
+    .step-list li::before {
+      content: "⚽";
+      position: absolute;
+      left: 0;
+      top: 2px;
+      font-size: 1.2rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 3px solid var(--black);
+    }
+
+    th {
+      background-color: var(--black);
+      color: var(--accent);
+      padding: 12px;
+      text-align: left;
+      font-family: var(--font-comic);
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    tr:hover {
+      background-color: rgba(255,255,255,0.05);
+    }
+
+    .alert-box {
+      border-left: 6px solid var(--secondary);
+      background: rgba(255, 51, 102, 0.1);
+      padding: 15px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+    }
+
+    .print-btn-container {
+      text-align: center;
+      margin: 40px 0;
+    }
+
+    .print-btn {
+      font-family: var(--font-comic);
+      background-color: var(--primary);
+      color: var(--black);
+      border: 3px solid var(--black);
+      box-shadow: 4px 4px 0 var(--black);
+      padding: 12px 30px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.1s ease;
+    }
+
+    .print-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--black);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- PÁGINA DE PORTADA -->
+    <div class="cover-page">
+      <img src="manual_cover.png" alt="La Polla Cover" class="cover-img">
+      <div class="title-banner">La Polla by patojv</div>
+      <div class="subtitle-banner">Guía del Usuario & Manual de Juego ⚽</div>
+      <p style="font-size: 1.2rem; color: var(--gray);">Todo lo que necesitas saber para registrarte, pronosticar y ganar.</p>
+      
+      <div class="print-btn-container no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ IMPRIMIR / GUARDAR EN PDF</button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 1: INTRODUCCIÓN Y REGISTRO -->
+    <div class="page-break">
+      <h2>1. Introducción y Registro 🎫</h2>
+      <div class="comic-card">
+        <p><strong>La Polla by patojv</strong> es una divertida plataforma interactiva tipo estadio-cómic diseñada para competir pronosticando marcadores de partidos de fútbol en tiempo real.</p>
+        
+        <h3>¿Cómo crear una cuenta nueva?</h3>
+        <ul class="step-list">
+          <li>Dirígete a la pestaña <strong>Registrarse</strong> de la pantalla de inicio.</li>
+          <li>Escribe tu <strong>Correo Electrónico</strong> personal.</li>
+          <li>Define tu <strong>Apodo (Nickname)</strong>, que será el nombre que aparecerá públicamente en la tabla general.</li>
+          <li>Ingresa una contraseña segura para tu acceso personal.</li>
+          <li>Selecciona el <strong>Grupo de Juego</strong> al cual deseas unirte desde la lista disponible.</li>
+          <li>Presiona el botón de registro y accederás de inmediato a la aplicación.</li>
+        </ul>
+      </div>
+
+      <h2>2. Inicio de Sesión 🔑</h2>
+      <div class="comic-card">
+        <p>Una vez registrado, puedes volver a iniciar sesión cuando gustes en la pestaña <strong>Iniciar Sesión</strong>:</p>
+        <ul class="step-list">
+          <li>Selecciona el <strong>Grupo de Juego</strong> específico al que vas a ingresar.</li>
+          <li>Ingresa tu <strong>Correo</strong> y la <strong>Contraseña</strong> que definiste al registrarte.</li>
+          <li><strong>Múltiples Grupos:</strong> Si formas parte de más de un grupo, no necesitas cerrar sesión; simplemente cámbiate de grupo usando el menú selector que aparece arriba a la derecha al lado de tu apodo.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- PÁGINA 2: PRONÓSTICOS -->
+    <div class="page-break">
+      <h2>3. Registro de Pronósticos 🎟️</h2>
+      <div class="comic-card">
+        <span class="badge-comic">IMPORTANTE</span>
+        <p>Los pronósticos se ingresan y guardan por sección de forma independiente. Para registrar tus marcadores:</p>
+        
+        <ul class="step-list">
+          <li>Entra a la pestaña <strong>Pronósticos</strong> en el menú superior.</li>
+          <li>Navega por las sub-pestañas: <strong>Grupo A a Grupo L</strong> para la primera fase, o las pestañas de <strong>Finales</strong> para las eliminatorias directas.</li>
+          <li>Escribe la cantidad de goles para cada equipo en los cuadros numéricos.</li>
+          <li><strong>Autocompletado Aleatorio:</strong> Puedes pulsar el botón del dado (🎲) al lado de cualquier marcador para simular una puntuación aleatoria y realista de fútbol.</li>
+          <li>Presiona el botón **💾 GUARDAR PRONÓSTICOS** en la parte superior o inferior de la pantalla para salvar tus cambios.</li>
+        </ul>
+
+        <div class="alert-box">
+          <p style="margin: 0; color: var(--white); font-weight: bold;">🕒 Regla del Límite de Tiempo:</p>
+          <p style="margin: 5px 0 0 0; font-size: 0.95rem; color: var(--gray);">
+            Los marcadores se cierran automáticamente <strong>30 minutos antes del inicio real</strong> de cada partido. Transcurrido ese límite, los campos aparecerán deshabilitados con un candado (🔒) y no podrán ser modificados.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PÁGINA 3: PUNTOS Y REGLAS -->
+    <div class="page-break">
+      <h2>4. Sistema de Puntuación 📊</h2>
+      <div class="comic-card">
+        <p>Al finalizar un partido, el administrador actualizará el marcador oficial del torneo. Los puntos que ganarás se determinan según la siguiente tabla:</p>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo de Acierto</th>
+              <th>Puntos</th>
+              <th>Descripción</th>
+              <th>Ejemplo (Predic. vs Real)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color: var(--primary); font-weight: bold;">Exacto 🥇</td>
+              <td><strong>+3 pts</strong></td>
+              <td>Acertaste la cantidad exacta de goles de ambos equipos.</td>
+              <td>Predic: <code>2 - 1</code><br>Real: <code>2 - 1</code></td>
+            </tr>
+            <tr>
+              <td style="color: var(--accent); font-weight: bold;">Tendencia 🥈</td>
+              <td><strong>+1 pt</strong></td>
+              <td>Acertaste al ganador o si hubo empate, pero fallaste en la cantidad de goles.</td>
+              <td>Predic: <code>3 - 0</code><br>Real: <code>1 - 0</code></td>
+            </tr>
+            <tr>
+              <td style="color: var(--secondary); font-weight: bold;">Fallado ❌</td>
+              <td><strong>0 pts</strong></td>
+              <td>No acertaste ni el resultado ni el ganador.</td>
+              <td>Predic: <code>1 - 1</code><br>Real: <code>0 - 2</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>5. Botes y Fases Divididas 🏆</h2>
+      <div class="comic-card">
+        <p>El tablero muestra el acumulado del bote (número de participantes por la cuota de entrada) y el porcentaje de premios asignado al primer, segundo y tercer lugar.</p>
+        
+        <h3>Grupos con Fases Divididas:</h3>
+        <p>Si el administrador configura el grupo en modo de **Fases Divididas**, el tablero mostrará dos pestañas en la parte superior:</p>
+        <ul class="step-list">
+          <li><strong>⚽ Fase de Grupos:</strong> Registra la clasificación y reparte un bote de premios correspondiente solo a los primeros 72 partidos.</li>
+          <li><strong>🏆 Fase de Eliminatorias (Llaves):</strong> Abre una clasificación y bote de premios independiente a partir de dieciseisavos. ¡Permite competir de cero a los usuarios a los que les fue mal en la primera fase!</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
