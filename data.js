@@ -466,7 +466,7 @@ async function syncStateFromSupabase() {
   }
 }
 
-const DB_VERSION = 11; // Incrementada a versión 11 para forzar la actualización de fixtures y grupos oficiales de la FIFA
+const DB_VERSION = 12; // Incrementada a versión 12 para forzar la actualización de fixtures y grupos oficiales de la FIFA
 const STORAGE_KEY = "la_polla_mundialista_state";
 const VERSION_KEY = "la_polla_mundialista_db_version";
 
