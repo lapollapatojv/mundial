@@ -4,15 +4,15 @@ const INITIAL_GROUPS = [];
 
 const GROUPS_CONFIG = {
   "Grupo A": {
-    teams: ["México", "Sudáfrica", "Corea del Sur", "Ucrania"],
-    emojis: ["🇲🇽", "🇿🇦", "🇰🇷", "🇺🇦"],
-    codes: ["mx", "za", "kr", "ua"],
+    teams: ["México", "Sudáfrica", "Corea del Sur", "República Checa"],
+    emojis: ["🇲🇽", "🇿🇦", "🇰🇷", "🇨🇿"],
+    codes: ["mx", "za", "kr", "cz"],
     stadiums: ["Estadio Azteca", "Estadio Guadalajara", "Estadio Monterrey"]
   },
   "Grupo B": {
-    teams: ["Canadá", "Gales", "Catar", "Suiza"],
-    emojis: ["🇨🇦", "🏴\u{e0067}\u{e0062}\u{e0077}\u{e006c}\u{e0073}\u{e007f}", "🇶🇦", "🇨🇭"],
-    codes: ["ca", "gb-wls", "qa", "ch"],
+    teams: ["Canadá", "Bosnia y Herzegovina", "Catar", "Suiza"],
+    emojis: ["🇨🇦", "🇧🇦", "🇶🇦", "🇨🇭"],
+    codes: ["ca", "ba", "qa", "ch"],
     stadiums: ["Estadio Toronto", "Estadio Vancouver", "Estadio Seattle"]
   },
   "Grupo C": {
@@ -22,9 +22,9 @@ const GROUPS_CONFIG = {
     stadiums: ["Estadio NY/NJ", "Estadio Boston", "Estadio Philadelphia"]
   },
   "Grupo D": {
-    teams: ["Estados Unidos", "Paraguay", "Australia", "Suecia"],
-    emojis: ["🇺🇸", "🇵🇾", "🇦🇺", "🇸🇪"],
-    codes: ["us", "py", "au", "se"],
+    teams: ["Estados Unidos", "Paraguay", "Australia", "Turquía"],
+    emojis: ["🇺🇸", "🇵🇾", "🇦🇺", "🇹🇷"],
+    codes: ["us", "py", "au", "tr"],
     stadiums: ["Estadio Los Ángeles", "Estadio San Francisco", "Estadio Seattle"]
   },
   "Grupo E": {
@@ -34,9 +34,9 @@ const GROUPS_CONFIG = {
     stadiums: ["Estadio Houston", "Estadio Dallas", "Estadio Kansas City"]
   },
   "Grupo F": {
-    teams: ["Países Bajos", "Japón", "Polonia", "Túnez"],
-    emojis: ["🇳🇱", "🇯🇵", "🇵🇱", "🇹🇳"],
-    codes: ["nl", "jp", "pl", "tn"],
+    teams: ["Países Bajos", "Japón", "Suecia", "Túnez"],
+    emojis: ["🇳🇱", "🇯🇵", "🇸🇪", "🇹🇳"],
+    codes: ["nl", "jp", "se", "tn"],
     stadiums: ["Estadio Atlanta", "Estadio Miami", "Estadio Orlando"]
   },
   "Grupo G": {
@@ -52,9 +52,9 @@ const GROUPS_CONFIG = {
     stadiums: ["Estadio Dallas", "Estadio Houston", "Estadio Monterrey"]
   },
   "Grupo I": {
-    teams: ["Francia", "Senegal", "Perú", "Noruega"],
-    emojis: ["🇫🇷", "🇸🇳", "🇵🇪", "🇳🇴"],
-    codes: ["fr", "sn", "pe", "no"],
+    teams: ["Francia", "Senegal", "Irak", "Noruega"],
+    emojis: ["🇫🇷", "🇸🇳", "🇮🇶", "🇳🇴"],
+    codes: ["fr", "sn", "iq", "no"],
     stadiums: ["Estadio NY/NJ", "Estadio Philadelphia", "Estadio Atlanta"]
   },
   "Grupo J": {
@@ -64,9 +64,9 @@ const GROUPS_CONFIG = {
     stadiums: ["Estadio Miami", "Estadio Orlando", "Estadio Kansas City"]
   },
   "Grupo K": {
-    teams: ["Portugal", "Costa Rica", "Uzbekistán", "Colombia"],
-    emojis: ["🇵🇹", "🇨🇷", "🇺🇿", "🇨🇴"],
-    codes: ["pt", "cr", "uz", "co"],
+    teams: ["Portugal", "R. D. Congo", "Uzbekistán", "Colombia"],
+    emojis: ["🇵🇹", "🇨🇩", "🇺🇿", "🇨🇴"],
+    codes: ["pt", "cd", "uz", "co"],
     stadiums: ["Estadio Los Ángeles", "Estadio San Francisco", "Estadio Guadalajara"]
   },
   "Grupo L": {
@@ -466,7 +466,7 @@ async function syncStateFromSupabase() {
   }
 }
 
-const DB_VERSION = 10; // Incrementada a versión 10 para asegurar que el admin sea participante en todos los grupos
+const DB_VERSION = 11; // Incrementada a versión 11 para forzar la actualización de fixtures y grupos oficiales de la FIFA
 const STORAGE_KEY = "la_polla_mundialista_state";
 const VERSION_KEY = "la_polla_mundialista_db_version";
 
