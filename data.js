@@ -1108,7 +1108,8 @@ async function removeUserFromGroup(email, groupId) {
       user.groupIds = user.groupIds.filter(id => id !== groupId);
     }
     
-    delete state.predictions[`${email}||${groupId}`];
+    const emailKey = `${email}||${groupId}`;
+    delete state.predictions[emailKey];
     
     // Si el usuario ya no pertenece a ningún grupo, borrarlo por completo (salvo si es el admin)
     if (email !== "lapollapatojv@gmail.com" && (!user.groupIds || user.groupIds.length === 0)) {
@@ -1120,20 +1121,14 @@ async function removeUserFromGroup(email, groupId) {
     const client = getSupabaseClient();
     if (client) {
       try {
-        // 1. Borrar relación grupo-usuario
-        const { error: errUg } = await client.from('user_groups').delete().eq('email', email).eq('group_id', groupId);
-        if (errUg) throw errUg;
+        // 1. Borrar todas las predicciones de este usuario en este grupo
+        await client.from('predictions').delete().eq('email', emailKey);
 
-        // 2. Si no le quedan grupos en Supabase y no es el admin, borrar usuario
-        if (email !== "lapollapatojv@gmail.com") {
-          const { data: userGroups, error: errCheck } = await client.from('user_groups').select('*').eq('email', email);
-          if (errCheck) throw errCheck;
+        // 2. Borrar relación grupo-usuario
+        await client.from('user_groups').delete().eq('email', emailKey).eq('group_id', groupId);
 
-          if (!userGroups || userGroups.length === 0) {
-            await client.from('users').delete().eq('email', email);
-            await client.from('predictions').delete().eq('email', email);
-          }
-        }
+        // 3. Borrar el perfil del usuario de este grupo
+        await client.from('users').delete().eq('email', emailKey);
       } catch (e) {
         console.error("❌ Error al remover usuario en Supabase:", e.message);
       }
