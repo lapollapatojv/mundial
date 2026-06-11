@@ -524,21 +524,38 @@ async function authenticateUser(email, nickname, groupId, password) {
 
   const client = getSupabaseClient();
   if (client) {
-    const { data: authData, error: authError } = await client.auth.signUp({
-      email: email,
-      password: pass,
-      options: {
-        data: {
-          nickname: nickname
+    try {
+      const { data: authData, error: authError } = await client.auth.signUp({
+        email: email,
+        password: pass,
+        options: {
+          data: {
+            nickname: nickname
+          }
         }
+      });
+      
+      if (authError) {
+        throw authError;
       }
-    });
-    
-    if (authError) {
-      if (authError.message.toLowerCase().includes("already registered") || authError.status === 400) {
-        throw new Error("Este correo ya está registrado en la plataforma. Por favor inicia sesión en la pestaña 'Iniciar Sesión'.");
+    } catch (authError) {
+      const isAlreadyRegistered = authError.message.toLowerCase().includes("already registered") || 
+                                  authError.status === 400 ||
+                                  authError.message.toLowerCase().includes("user_already_exists");
+      
+      if (isAlreadyRegistered) {
+        // Validar contraseña intentando iniciar sesión
+        const { error: signInError } = await client.auth.signInWithPassword({
+          email: email,
+          password: pass
+        });
+        
+        if (signInError) {
+          throw new Error("Este correo ya está registrado en la plataforma, pero la contraseña ingresada es incorrecta.");
+        }
+      } else {
+        throw authError;
       }
-      throw authError;
     }
   }
 
