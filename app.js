@@ -516,7 +516,16 @@ function updateHeaderUI() {
 }
 
 // Control de navegación / Cambio de pestañas
-function switchView(viewName) {
+async function switchView(viewName) {
+  // Si el usuario está saliendo de la pestaña de pronósticos, guardar los cambios automáticamente de forma silenciosa
+  if (currentUser && viewPredictions && !viewPredictions.classList.contains("d-none") && viewName !== "predictions") {
+    try {
+      await saveAllPredictionsFromUI(true);
+    } catch (e) {
+      console.error("❌ Error al guardar pronósticos automáticamente:", e);
+    }
+  }
+
   // Ocultar todas las vistas
   viewAuth.classList.add("d-none");
   viewDashboard.classList.add("d-none");
