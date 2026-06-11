@@ -322,9 +322,25 @@ async function syncStateFromSupabase() {
     const { data: dbUserGroups, error: errUserGroups } = await client.from('user_groups').select('*');
     if (errUserGroups) throw errUserGroups;
 
-    // 4. Obtener pronósticos
-    const { data: dbPredictions, error: errPredictions } = await client.from('predictions').select('*');
-    if (errPredictions) throw errPredictions;
+    // 4. Obtener pronósticos (paginado para superar el límite de 1000 de Supabase)
+    let dbPredictions = [];
+    let start = 0;
+    const limit = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data: chunk, error: errPredictions } = await client
+        .from('predictions')
+        .select('*')
+        .range(start, start + limit - 1);
+      
+      if (errPredictions) throw errPredictions;
+      dbPredictions = dbPredictions.concat(chunk);
+      if (chunk.length < limit) {
+        hasMore = false;
+      } else {
+        start += limit;
+      }
+    }
 
     // 5. Obtener marcadores de partidos
     const { data: dbMatches, error: errMatches } = await client.from('matches').select('*');
