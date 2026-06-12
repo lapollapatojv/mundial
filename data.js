@@ -82,6 +82,8 @@ let matchIdCounter = 1;
 
 // Generar partidos de Fase de Grupos (6 partidos por grupo * 12 grupos = 72 partidos)
 const groupNames = Object.keys(GROUPS_CONFIG);
+const matchesPerDay = {};
+
 groupNames.forEach((gName) => {
   const g = GROUPS_CONFIG[gName];
   const matchups = [
@@ -95,7 +97,15 @@ groupNames.forEach((gName) => {
     const idxB = pair[1];
     
     const day = 11 + groupNames.indexOf(gName) + Math.floor(matchIdx / 2);
-    const hour = matchIdx % 2 === 0 ? "15:00" : "20:00";
+    if (matchesPerDay[day] === undefined) {
+      matchesPerDay[day] = 0;
+    }
+    const orderOnDay = matchesPerDay[day]++;
+    
+    // Asignar horarios escalonados basados en el número de partido del día
+    const hoursPool = ["13:00", "16:00", "19:00", "22:00", "15:00", "18:00", "21:00"];
+    const hour = hoursPool[orderOnDay % hoursPool.length];
+    
     const stadium = g.stadiums[matchIdx % g.stadiums.length];
     const dayStr = String(day).padStart(2, '0');
 
@@ -122,12 +132,16 @@ groupNames.forEach((gName) => {
 for (let i = 1; i <= 16; i++) {
   const day = 28 + Math.floor((i-1)/4);
   const dayStr = String(day).padStart(2, '0');
+  const orderOnDay = (i - 1) % 4;
+  const hoursPool = ["13:00", "16:00", "19:00", "22:00"];
+  const hour = hoursPool[orderOnDay];
+
   INITIAL_MATCHES.push({
     id: "m" + matchIdCounter++,
     stage: "Dieciseisavos de Final",
     group: null,
-    date: `Junio ${day} - 18:00 GMT-4`,
-    isoDate: `2026-06-${dayStr}T18:00:00-04:00`,
+    date: `Junio ${day} - ${hour} GMT-4`,
+    isoDate: `2026-06-${dayStr}T${hour}:00-04:00`,
     teamA: `Ganador Llave ${2*i - 1}`,
     teamB: `Segundo Llave ${2*i}`,
     emojiA: "🏆",
@@ -144,12 +158,15 @@ for (let i = 1; i <= 16; i++) {
 for (let i = 1; i <= 8; i++) {
   const day = 4 + Math.floor((i-1)/2);
   const dayStr = String(day).padStart(2, '0');
+  const orderOnDay = (i - 1) % 2;
+  const hour = orderOnDay === 0 ? "16:00" : "21:00";
+
   INITIAL_MATCHES.push({
     id: "m" + matchIdCounter++,
     stage: "Octavos de Final",
     group: null,
-    date: `Julio ${day} - 16:00 GMT-4`,
-    isoDate: `2026-07-${dayStr}T16:00:00-04:00`,
+    date: `Julio ${day} - ${hour} GMT-4`,
+    isoDate: `2026-07-${dayStr}T${hour}:00-04:00`,
     teamA: `Ganador Dieciseisavos ${2*i - 1}`,
     teamB: `Ganador Dieciseisavos ${2*i}`,
     emojiA: "🏆",
@@ -166,12 +183,15 @@ for (let i = 1; i <= 8; i++) {
 for (let i = 1; i <= 4; i++) {
   const day = 9 + Math.floor((i-1)/2);
   const dayStr = String(day).padStart(2, '0');
+  const orderOnDay = (i - 1) % 2;
+  const hour = orderOnDay === 0 ? "17:00" : "21:00";
+
   INITIAL_MATCHES.push({
     id: "m" + matchIdCounter++,
     stage: "Cuartos de Final",
     group: null,
-    date: `Julio ${day} - 17:00 GMT-4`,
-    isoDate: `2026-07-${dayStr}T17:00:00-04:00`,
+    date: `Julio ${day} - ${hour} GMT-4`,
+    isoDate: `2026-07-${dayStr}T${hour}:00-04:00`,
     teamA: `Ganador Octavos ${2*i - 1}`,
     teamB: `Ganador Octavos ${2*i}`,
     emojiA: "🏆",
@@ -482,7 +502,7 @@ async function syncStateFromSupabase() {
   }
 }
 
-const DB_VERSION = 12; // Incrementada a versión 12 para forzar la actualización de fixtures y grupos oficiales de la FIFA
+const DB_VERSION = 13; // Incrementada a versión 13 para forzar la actualización de fixtures y grupos oficiales de la FIFA
 const STORAGE_KEY = "la_polla_mundialista_state";
 const VERSION_KEY = "la_polla_mundialista_db_version";
 
