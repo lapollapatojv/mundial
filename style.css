@@ -1002,6 +1002,13 @@ header {
   transform: scale(1.02);
 }
 
+.short-name {
+  display: none !important;
+}
+.full-name {
+  display: inline !important;
+}
+
 /* ==========================================================================
    MOBILE RESPONSIVENESS (PANTALLAS VERTICALES / CELULARES)
    ========================================================================== */
@@ -1158,5 +1165,31 @@ header {
 
   .admin-user-row > div {
     width: 100% !important;
+  }
+
+  .full-name {
+    display: none !important;
+  }
+  .short-name {
+    display: inline !important;
+  }
+
+  /* Ajustes para la tabla de posiciones en celular */
+  .leaderboard-table th, 
+  .leaderboard-table td {
+    padding: 6px 4px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .player-email {
+    display: none !important;
+  }
+
+  .player-name {
+    font-size: 0.85rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 110px !important;
   }
 }
