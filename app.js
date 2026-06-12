@@ -853,7 +853,10 @@ function getMatchTicketHTML(match, pred, index) {
           <!-- Equipo A -->
           <div class="team-container">
             ${flagAHTML}
-            <span class="team-name" title="${match.teamA}">${match.teamA}</span>
+            <span class="team-name" title="${match.teamA}">
+              <span class="full-name">${match.teamA}</span>
+              <span class="short-name">${getTeamAbbreviation(match.teamA)}</span>
+            </span>
           </div>
 
           <!-- Goles Pronóstico -->
@@ -871,7 +874,10 @@ function getMatchTicketHTML(match, pred, index) {
           <!-- Equipo B -->
           <div class="team-container">
             ${flagBHTML}
-            <span class="team-name" title="${match.teamB}">${match.teamB}</span>
+            <span class="team-name" title="${match.teamB}">
+              <span class="full-name">${match.teamB}</span>
+              <span class="short-name">${getTeamAbbreviation(match.teamB)}</span>
+            </span>
           </div>
         </div>
 
@@ -1482,4 +1488,25 @@ function renderAdminUsersList() {
 
     adminUsersList.appendChild(row);
   });
+}
+
+// Obtener abreviación de 3 letras oficial para países
+function getTeamAbbreviation(name) {
+  if (!name) return "";
+  const norm = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const abbs = {
+    "mexico": "MEX", "sudafrica": "RSA", "corea del sur": "KOR", "republica checa": "CZE",
+    "canada": "CAN", "bosnia y herzegovina": "BIH", "qatar": "QAT", "catar": "QAT", "suiza": "SUI",
+    "brasil": "BRA", "marruecos": "MAR", "haiti": "HAI", "escocia": "SCO",
+    "estados unidos": "USA", "usa": "USA", "paraguay": "PAR", "australia": "AUS", "turquia": "TUR",
+    "alemania": "GER", "curazao": "CUW", "costa de marfil": "CIV", "ecuador": "ECU",
+    "paises bajos": "NED", "japon": "JPN", "suecia": "SWE", "tunez": "TUN",
+    "belgica": "BEL", "egipto": "EGY", "iran": "IRN", "nueva zelanda": "NZL",
+    "espana": "ESP", "cabo verde": "CPV", "arabia saudita": "KSA", "uruguay": "URU",
+    "francia": "FRA", "senegal": "SEN", "noruega": "NOR", "irak": "IRQ",
+    "argentina": "ARG", "argelia": "ALG", "austria": "AUT", "jordania": "JOR",
+    "portugal": "POR", "uzbekistan": "UZB", "colombia": "COL", "r. d. congo": "COD", "congo dr": "COD",
+    "inglaterra": "ENG", "croacia": "CRO", "ghana": "GHA", "panama": "PAN"
+  };
+  return abbs[norm] || name.substring(0, 3).toUpperCase();
 }
