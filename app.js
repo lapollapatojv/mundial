@@ -855,7 +855,7 @@ function getMatchTicketHTML(match, pred, index) {
             ${flagAHTML}
             <span class="team-name" title="${match.teamA}">
               <span class="full-name">${match.teamA}</span>
-              <span class="short-name">${getTeamAbbreviation(match.teamA)}</span>
+              <span class="short-name" style="display: none;">${getTeamAbbreviation(match.teamA)}</span>
             </span>
           </div>
 
@@ -876,7 +876,7 @@ function getMatchTicketHTML(match, pred, index) {
             ${flagBHTML}
             <span class="team-name" title="${match.teamB}">
               <span class="full-name">${match.teamB}</span>
-              <span class="short-name">${getTeamAbbreviation(match.teamB)}</span>
+              <span class="short-name" style="display: none;">${getTeamAbbreviation(match.teamB)}</span>
             </span>
           </div>
         </div>
