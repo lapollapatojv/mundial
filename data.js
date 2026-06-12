@@ -579,7 +579,7 @@ async function syncStateFromSupabase() {
   }
 }
 
-const DB_VERSION = 14; // Incrementada a versión 14 para forzar la actualización de fixtures y grupos oficiales de la FIFA
+const DB_VERSION = 15; // Incrementada a versión 15 para forzar la actualización de fixtures y corregir el bloqueo de partidos antiguos
 const STORAGE_KEY = "la_polla_mundialista_state";
 const VERSION_KEY = "la_polla_mundialista_db_version";
 

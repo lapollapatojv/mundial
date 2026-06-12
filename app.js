@@ -791,13 +791,9 @@ function renderPredictions() {
   });
 }
 
-// Función para verificar si el partido ya está cerrado para pronósticos (menos de 30 minutos antes del inicio)
+// Función para verificar si el partido ya está cerrado para pronósticos (LÍMITE DESACTIVADO TEMPORALMENTE)
 function isMatchLocked(match) {
-  if (!match.isoDate) return false;
-  const matchTime = new Date(match.isoDate).getTime();
-  const limitTime = matchTime - 15 * 60 * 1000; // Límite: 15 minutos antes del partido
-  const now = Date.now();
-  return now > limitTime;
+  return false; // Desactivado temporalmente a solicitud del usuario
 }
 
 // Función auxiliar para construir el HTML de la entrada de estadio
