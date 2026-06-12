@@ -80,10 +80,90 @@ const GROUPS_CONFIG = {
 const INITIAL_MATCHES = [];
 let matchIdCounter = 1;
 
-// Generar partidos de Fase de Grupos (6 partidos por grupo * 12 grupos = 72 partidos)
-const groupNames = Object.keys(GROUPS_CONFIG);
-const matchesPerDay = {};
+// Definir el cronograma oficial de partidos del mundial (GMT-4 / Bolivia)
+const OFFICIAL_FIXTURE_SCHEDULE = {};
+const rawSchedule = [
+  { t1: "México", t2: "Sudáfrica", day: 11, hour: "15:00" },
+  { t1: "Corea del Sur", t2: "República Checa", day: 11, hour: "22:00" },
+  { t1: "Canadá", t2: "Bosnia y Herzegovina", day: 12, hour: "15:00" },
+  { t1: "Estados Unidos", t2: "Paraguay", day: 12, hour: "21:00" },
+  { t1: "Catar", t2: "Suiza", day: 13, hour: "15:00" },
+  { t1: "Brasil", t2: "Marruecos", day: 13, hour: "18:00" },
+  { t1: "Haití", t2: "Escocia", day: 13, hour: "21:00" },
+  { t1: "Australia", t2: "Turquía", day: 14, hour: "00:00" },
+  { t1: "Alemania", t2: "Curazao", day: 14, hour: "13:00" },
+  { t1: "Países Bajos", t2: "Japón", day: 14, hour: "16:00" },
+  { t1: "Costa de Marfil", t2: "Ecuador", day: 14, hour: "19:00" },
+  { t1: "Suecia", t2: "Túnez", day: 14, hour: "22:00" },
+  { t1: "España", t2: "Cabo Verde", day: 15, hour: "12:00" },
+  { t1: "Bélgica", t2: "Egipto", day: 15, hour: "15:00" },
+  { t1: "Arabia Saudita", t2: "Uruguay", day: 15, hour: "18:00" },
+  { t1: "Irán", t2: "Nueva Zelanda", day: 15, hour: "21:00" },
+  { t1: "Francia", t2: "Senegal", day: 16, hour: "15:00" },
+  { t1: "Irak", t2: "Noruega", day: 16, hour: "18:00" },
+  { t1: "Argentina", t2: "Argelia", day: 16, hour: "21:00" },
+  { t1: "Austria", t2: "Jordania", day: 17, hour: "00:00" },
+  { t1: "Portugal", t2: "R. D. Congo", day: 17, hour: "13:00" },
+  { t1: "Inglaterra", t2: "Croacia", day: 17, hour: "16:00" },
+  { t1: "Ghana", t2: "Panamá", day: 17, hour: "19:00" },
+  { t1: "Uzbekistán", t2: "Colombia", day: 17, hour: "22:00" },
+  { t1: "República Checa", t2: "Sudáfrica", day: 18, hour: "00:00" },
+  { t1: "Suiza", t2: "Bosnia y Herzegovina", day: 18, hour: "15:00" },
+  { t1: "Canadá", t2: "Catar", day: 18, hour: "18:00" },
+  { t1: "México", t2: "Corea del Sur", day: 18, hour: "21:00" },
+  { t1: "Estados Unidos", t2: "Australia", day: 19, hour: "15:00" },
+  { t1: "Escocia", t2: "Marruecos", day: 19, hour: "18:00" },
+  { t1: "Brasil", t2: "Haití", day: 19, hour: "20:30" },
+  { t1: "Turquía", t2: "Paraguay", day: 19, hour: "23:00" },
+  { t1: "Países Bajos", t2: "Suecia", day: 20, hour: "13:00" },
+  { t1: "Alemania", t2: "Costa de Marfil", day: 20, hour: "16:00" },
+  { t1: "Ecuador", t2: "Curazao", day: 20, hour: "20:00" },
+  { t1: "Túnez", t2: "Japón", day: 21, hour: "00:00" },
+  { t1: "España", t2: "Arabia Saudita", day: 21, hour: "12:00" },
+  { t1: "Bélgica", t2: "Irán", day: 21, hour: "15:00" },
+  { t1: "Uruguay", t2: "Cabo Verde", day: 21, hour: "18:00" },
+  { t1: "Egipto", t2: "Nueva Zelanda", day: 21, hour: "21:00" },
+  { t1: "Argentina", t2: "Austria", day: 22, hour: "13:00" },
+  { t1: "Francia", t2: "Irak", day: 22, hour: "17:00" },
+  { t1: "Noruega", t2: "Senegal", day: 22, hour: "20:00" },
+  { t1: "Argelia", t2: "Jordania", day: 22, hour: "23:00" },
+  { t1: "Portugal", t2: "Uzbekistán", day: 23, hour: "13:00" },
+  { t1: "Inglaterra", t2: "Ghana", day: 23, hour: "16:00" },
+  { t1: "Panamá", t2: "Croacia", day: 23, hour: "19:00" },
+  { t1: "Colombia", t2: "R. D. Congo", day: 23, hour: "22:00" },
+  { t1: "Suiza", t2: "Canadá", day: 24, hour: "15:00" },
+  { t1: "Bosnia y Herzegovina", t2: "Catar", day: 24, hour: "15:00" },
+  { t1: "Escocia", t2: "Brasil", day: 24, hour: "18:00" },
+  { t1: "Marruecos", t2: "Haití", day: 24, hour: "18:00" },
+  { t1: "República Checa", t2: "México", day: 24, hour: "21:00" },
+  { t1: "Sudáfrica", t2: "Corea del Sur", day: 24, hour: "21:00" },
+  { t1: "Curazao", t2: "Costa de Marfil", day: 25, hour: "16:00" },
+  { t1: "Ecuador", t2: "Alemania", day: 25, hour: "16:00" },
+  { t1: "Japón", t2: "Suecia", day: 25, hour: "19:00" },
+  { t1: "Túnez", t2: "Países Bajos", day: 25, hour: "19:00" },
+  { t1: "Turquía", t2: "Estados Unidos", day: 25, hour: "22:00" },
+  { t1: "Paraguay", t2: "Australia", day: 25, hour: "22:00" },
+  { t1: "Noruega", t2: "Francia", day: 26, hour: "15:00" },
+  { t1: "Senegal", t2: "Irak", day: 26, hour: "15:00" },
+  { t1: "Cabo Verde", t2: "Arabia Saudita", day: 26, hour: "20:00" },
+  { t1: "Uruguay", t2: "España", day: 26, hour: "20:00" },
+  { t1: "Egipto", t2: "Irán", day: 26, hour: "23:00" },
+  { t1: "Nueva Zelanda", t2: "Bélgica", day: 26, hour: "23:00" },
+  { t1: "Panamá", t2: "Inglaterra", day: 27, hour: "17:00" },
+  { t1: "Croacia", t2: "Ghana", day: 27, hour: "17:00" },
+  { t1: "Colombia", t2: "Portugal", day: 27, hour: "19:30" },
+  { t1: "R. D. Congo", t2: "Uzbekistán", day: 27, hour: "19:30" },
+  { t1: "Argelia", t2: "Austria", day: 27, hour: "22:00" },
+  { t1: "Jordania", t2: "Argentina", day: 27, hour: "22:00" }
+];
 
+rawSchedule.forEach(item => {
+  const key = item.t1 < item.t2 ? `${item.t1}||${item.t2}` : `${item.t2}||${item.t1}`;
+  OFFICIAL_FIXTURE_SCHEDULE[key] = { day: item.day, hour: item.hour };
+});
+
+// Generar partidos de Fase de Grupos
+const groupNames = Object.keys(GROUPS_CONFIG);
 groupNames.forEach((gName) => {
   const g = GROUPS_CONFIG[gName];
   const matchups = [
@@ -96,16 +176,13 @@ groupNames.forEach((gName) => {
     const idxA = pair[0];
     const idxB = pair[1];
     
-    const day = 11 + groupNames.indexOf(gName) + Math.floor(matchIdx / 2);
-    if (matchesPerDay[day] === undefined) {
-      matchesPerDay[day] = 0;
-    }
-    const orderOnDay = matchesPerDay[day]++;
+    const teamA = g.teams[idxA];
+    const teamB = g.teams[idxB];
+    const key = teamA < teamB ? `${teamA}||${teamB}` : `${teamB}||${teamA}`;
+    const sched = OFFICIAL_FIXTURE_SCHEDULE[key] || { day: 11, hour: "15:00" };
     
-    // Asignar horarios escalonados basados en el número de partido del día
-    const hoursPool = ["13:00", "16:00", "19:00", "22:00", "15:00", "18:00", "21:00"];
-    const hour = hoursPool[orderOnDay % hoursPool.length];
-    
+    const day = sched.day;
+    const hour = sched.hour;
     const stadium = g.stadiums[matchIdx % g.stadiums.length];
     const dayStr = String(day).padStart(2, '0');
 
@@ -115,8 +192,8 @@ groupNames.forEach((gName) => {
       group: gName,
       date: `Junio ${day} - ${hour} GMT-4 (${stadium})`,
       isoDate: `2026-06-${dayStr}T${hour}:00-04:00`,
-      teamA: g.teams[idxA],
-      teamB: g.teams[idxB],
+      teamA: teamA,
+      teamB: teamB,
       emojiA: g.emojis[idxA],
       emojiB: g.emojis[idxB],
       codeA: g.codes[idxA],
@@ -502,7 +579,7 @@ async function syncStateFromSupabase() {
   }
 }
 
-const DB_VERSION = 13; // Incrementada a versión 13 para forzar la actualización de fixtures y grupos oficiales de la FIFA
+const DB_VERSION = 14; // Incrementada a versión 14 para forzar la actualización de fixtures y grupos oficiales de la FIFA
 const STORAGE_KEY = "la_polla_mundialista_state";
 const VERSION_KEY = "la_polla_mundialista_db_version";
 
