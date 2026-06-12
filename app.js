@@ -793,16 +793,11 @@ function renderPredictions() {
 
 // Función para verificar si el partido ya está cerrado para pronósticos (menos de 30 minutos antes del inicio)
 function isMatchLocked(match) {
-  // Restricción de tiempo desactivada temporalmente a petición
-  return false;
-  
-  /*
   if (!match.isoDate) return false;
   const matchTime = new Date(match.isoDate).getTime();
-  const limitTime = matchTime - 30 * 60 * 1000; // Límite: 30 minutos antes del partido
+  const limitTime = matchTime - 15 * 60 * 1000; // Límite: 15 minutos antes del partido
   const now = Date.now();
   return now > limitTime;
-  */
 }
 
 // Función auxiliar para construir el HTML de la entrada de estadio
@@ -840,7 +835,7 @@ function getMatchTicketHTML(match, pred, index) {
   if (isPlayed) {
     statusTextHTML = `Resultado Real: <strong style="color: var(--white);">${match.scoreA} - ${match.scoreB}</strong>`;
   } else if (isMatchLocked(match)) {
-    statusTextHTML = `<span style="color: var(--secondary); font-weight: bold;">🔒 Pronósticos cerrados (30m límite)</span>`;
+    statusTextHTML = `<span style="color: var(--secondary); font-weight: bold;">🔒 Pronósticos cerrados (15m límite)</span>`;
   } else {
     statusTextHTML = `<span style="color: var(--primary);">🟢 Abierto para pronósticos</span>`;
   }
@@ -883,6 +878,10 @@ function getMatchTicketHTML(match, pred, index) {
         <!-- Estado de cierre o resultado -->
         <div style="font-size: 0.8rem; color: var(--gray); text-align: center;">
           ${statusTextHTML}
+        </div>
+        <!-- Fecha y hora del partido -->
+        <div style="font-size: 0.75rem; color: var(--accent); text-align: center; font-weight: bold; margin-top: 5px;">
+          📅 ${match.date}
         </div>
       </div>
 
