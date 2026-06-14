@@ -534,10 +534,12 @@ async function syncStateFromSupabase() {
     if (dbPredictions) {
       state.predictions = {};
       dbPredictions.forEach(p => {
-        if (!state.predictions[p.email]) {
-          state.predictions[p.email] = {};
+        const cleanEmail = p.email ? p.email.toLowerCase().trim() : "";
+        if (!cleanEmail) return;
+        if (!state.predictions[cleanEmail]) {
+          state.predictions[cleanEmail] = {};
         }
-        state.predictions[p.email][p.match_id] = {
+        state.predictions[cleanEmail][p.match_id] = {
           predA: p.pred_a,
           predB: p.pred_b
         };
@@ -579,7 +581,7 @@ async function syncStateFromSupabase() {
   }
 }
 
-const DB_VERSION = 15; // Incrementada a versión 15 para forzar la actualización de fixtures y corregir el bloqueo de partidos antiguos
+const DB_VERSION = 16; // Incrementada a versión 16 para forzar la sincronización correcta de las llaves en minúsculas de predicciones
 const STORAGE_KEY = "la_polla_mundialista_state";
 const VERSION_KEY = "la_polla_mundialista_db_version";
 

@@ -1010,6 +1010,140 @@ header {
 }
 
 /* ==========================================================================
+   DISEÑO DE VISTA DE FIXTURE (CALENDARIO)
+   ========================================================================== */
+.fixture-list-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.fixture-match-card {
+  background: var(--panel-bg);
+  border: var(--border-width) solid var(--black);
+  box-shadow: var(--comic-shadow-sm);
+  border-radius: 12px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fixture-match-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0px var(--black);
+}
+
+.fixture-match-card.today-highlight {
+  border-color: var(--accent) !important;
+  background: linear-gradient(135deg, rgba(25, 18, 55, 0.95) 0%, rgba(255, 184, 0, 0.08) 100%) !important;
+  animation: borderGlow 2s infinite alternate;
+}
+
+@keyframes borderGlow {
+  0% { box-shadow: 3px 3px 0px var(--black); }
+  100% { box-shadow: 3px 3px 0px var(--accent); }
+}
+
+.fixture-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--gray);
+  margin-bottom: 10px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-bottom: 6px;
+}
+
+.fixture-teams-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.fixture-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-comic);
+  font-size: 1.1rem;
+  width: 45%;
+}
+
+.fixture-team.team-a {
+  justify-content: flex-start;
+}
+
+.fixture-team.team-b {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.fixture-vs {
+  font-family: var(--font-comic);
+  font-size: 1rem;
+  color: var(--accent);
+  width: 10%;
+  text-align: center;
+}
+
+.fixture-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+  font-size: 0.85rem;
+}
+
+.fixture-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1.5px solid var(--black);
+}
+
+.fixture-status-badge.predicted {
+  background: var(--primary);
+  color: var(--black);
+}
+
+.fixture-status-badge.missing {
+  background: var(--secondary);
+  color: var(--white);
+}
+
+.btn-fixture-go-predict {
+  background: var(--accent);
+  color: var(--black);
+  border: 2px solid var(--black);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px var(--black);
+  transition: all 0.1s ease;
+  font-family: var(--font-comic);
+  text-transform: uppercase;
+}
+
+.btn-fixture-go-predict:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+
+/* ==========================================================================
    MOBILE RESPONSIVENESS (PANTALLAS VERTICALES / CELULARES)
    ========================================================================== */
 @media (max-width: 600px) {
@@ -1191,5 +1325,15 @@ header {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 110px !important;
+  }
+
+  /* Ajustes para la vista de Fixture en celular */
+  .fixture-list-container {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .fixture-team {
+    font-size: 0.95rem !important;
   }
 }

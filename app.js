@@ -30,6 +30,7 @@ const COUNTRY_CODES = {
 let currentUser = null;
 let currentGroupId = null;
 let currentDashboardPhaseFilter = "grupos";
+let currentFixtureFilter = "today"; // "all", "today", "pending"
 
 // Elementos del DOM
 const headerLogo = document.getElementById("header-logo");
@@ -39,6 +40,7 @@ const groupDisplayBadge = document.getElementById("group-display-badge");
 
 const btnNavDashboard = document.getElementById("btn-nav-dashboard");
 const btnNavPredictions = document.getElementById("btn-nav-predictions");
+const btnNavFixture = document.getElementById("btn-nav-fixture");
 const btnNavAdmin = document.getElementById("btn-nav-admin");
 const btnLogout = document.getElementById("btn-logout");
 
@@ -46,6 +48,7 @@ const btnLogout = document.getElementById("btn-logout");
 const viewAuth = document.getElementById("view-auth");
 const viewDashboard = document.getElementById("view-dashboard");
 const viewPredictions = document.getElementById("view-predictions");
+const viewFixture = document.getElementById("view-fixture");
 const viewAdmin = document.getElementById("view-admin");
 
 // Elementos de la Pestaña Auth (Formularios e Inputs)
@@ -133,7 +136,9 @@ async function initApp() {
 
 // Configurar el cambio de pestañas de la Landing Page
 function setupAuthTabs() {
+  console.log("Setting up auth tabs...");
   tabAuthLogin.addEventListener("click", () => {
+    console.log("Login tab clicked");
     tabAuthLogin.classList.add("active");
     tabAuthRegister.classList.remove("active");
     tabAuthAdmin.classList.remove("active");
@@ -144,6 +149,7 @@ function setupAuthTabs() {
   });
 
   tabAuthRegister.addEventListener("click", () => {
+    console.log("Register tab clicked");
     tabAuthLogin.classList.remove("active");
     tabAuthRegister.classList.add("active");
     tabAuthAdmin.classList.remove("active");
@@ -154,6 +160,7 @@ function setupAuthTabs() {
   });
 
   tabAuthAdmin.addEventListener("click", () => {
+    console.log("Admin tab clicked");
     tabAuthLogin.classList.remove("active");
     tabAuthRegister.classList.remove("active");
     tabAuthAdmin.classList.add("active");
@@ -169,6 +176,7 @@ function setupEventListeners() {
   // Navegación
   btnNavDashboard.addEventListener("click", () => switchView("dashboard"));
   btnNavPredictions.addEventListener("click", () => switchView("predictions"));
+  btnNavFixture.addEventListener("click", () => switchView("fixture"));
   btnNavAdmin.addEventListener("click", () => switchView("admin"));
 
   // Cambiar grupo de participantes en panel admin
@@ -420,6 +428,49 @@ function setupEventListeners() {
       }
     });
   }
+
+  // Filtros de Fixture
+  const btnFilterAll = document.getElementById("btn-fixture-filter-all");
+  const btnFilterToday = document.getElementById("btn-fixture-filter-today");
+  const btnFilterPending = document.getElementById("btn-fixture-filter-pending");
+
+  if (btnFilterAll) {
+    btnFilterAll.addEventListener("click", () => {
+      currentFixtureFilter = "all";
+      setActiveFixtureFilterButton(btnFilterAll);
+      renderFixtureView();
+    });
+  }
+  if (btnFilterToday) {
+    btnFilterToday.addEventListener("click", () => {
+      currentFixtureFilter = "today";
+      setActiveFixtureFilterButton(btnFilterToday);
+      renderFixtureView();
+    });
+  }
+  if (btnFilterPending) {
+    btnFilterPending.addEventListener("click", () => {
+      currentFixtureFilter = "pending";
+      setActiveFixtureFilterButton(btnFilterPending);
+      renderFixtureView();
+    });
+  }
+}
+
+function setActiveFixtureFilterButton(activeBtn) {
+  const btns = [
+    document.getElementById("btn-fixture-filter-all"),
+    document.getElementById("btn-fixture-filter-today"),
+    document.getElementById("btn-fixture-filter-pending")
+  ];
+  btns.forEach(btn => {
+    if (btn) {
+      btn.classList.remove("active");
+    }
+  });
+  if (activeBtn) {
+    activeBtn.classList.add("active");
+  }
 }
 
 // Rellenar lista de grupos en los selectores de Auth (Login y Registro)
@@ -498,6 +549,8 @@ function updateHeaderUI() {
             renderDashboard();
           } else if (!viewPredictions.classList.contains("d-none")) {
             renderPredictions();
+          } else if (viewFixture && !viewFixture.classList.contains("d-none")) {
+            renderFixtureView();
           }
         });
       }
@@ -530,6 +583,7 @@ async function switchView(viewName) {
   viewAuth.classList.add("d-none");
   viewDashboard.classList.add("d-none");
   viewPredictions.classList.add("d-none");
+  if (viewFixture) viewFixture.classList.add("d-none");
   viewAdmin.classList.add("d-none");
 
   // Quitar clase active a los botones del menú
@@ -537,6 +591,10 @@ async function switchView(viewName) {
   btnNavDashboard.classList.add("comic-btn-outline");
   btnNavPredictions.classList.remove("comic-btn-primary");
   btnNavPredictions.classList.add("comic-btn-outline");
+  if (btnNavFixture) {
+    btnNavFixture.classList.remove("comic-btn-primary");
+    btnNavFixture.classList.add("comic-btn-outline");
+  }
   btnNavAdmin.classList.remove("comic-btn-accent");
   btnNavAdmin.classList.add("comic-btn-secondary");
 
@@ -552,6 +610,13 @@ async function switchView(viewName) {
     btnNavPredictions.classList.add("comic-btn-primary");
     btnNavPredictions.classList.remove("comic-btn-outline");
     renderPredictions();
+  } else if (viewName === "fixture") {
+    if (viewFixture) viewFixture.classList.remove("d-none");
+    if (btnNavFixture) {
+      btnNavFixture.classList.add("comic-btn-primary");
+      btnNavFixture.classList.remove("comic-btn-outline");
+    }
+    renderFixtureView();
   } else if (viewName === "admin") {
     viewAdmin.classList.remove("d-none");
     btnNavAdmin.classList.add("comic-btn-accent");
@@ -788,6 +853,216 @@ function renderPredictions() {
     ticketWrapper.className = "ticket-wrapper";
     ticketWrapper.innerHTML = getMatchTicketHTML(match, pred, matchIndex);
     container.appendChild(ticketWrapper);
+  });
+}
+
+// 3. Renderizar Vista de Fixture
+function renderFixtureView() {
+  const container = document.getElementById("fixture-list-container");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const state = getAppState();
+  if (state.matches.length === 0) {
+    container.innerHTML = `<div class="empty-state">No hay partidos cargados.</div>`;
+    return;
+  }
+
+  const userPreds = state.predictions[`${currentUser.email}||${currentGroupId}`] || state.predictions[currentUser.email] || {};
+  console.log("Fixture Debug:", {
+    emailKey: `${currentUser.email}||${currentGroupId}`,
+    userPreds: userPreds,
+    availableKeys: Object.keys(state.predictions)
+  });
+
+  // Determinar hoy en Bolivia (GMT-4)
+  const nowBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
+  const todayStr = nowBolivia.toISOString().split('T')[0];
+
+  const isMatchToday = (match) => {
+    if (!match.isoDate) return false;
+    return match.isoDate.split('T')[0] === todayStr;
+  };
+
+  // Lógica de prioridad: 1. Hoy, 2. Faltan pronosticar (no bloqueado), 3. El resto
+  const getMatchPriority = (m) => {
+    const isToday = isMatchToday(m);
+    const pred = userPreds[m.id];
+    const hasPrediction = pred && pred.predA !== null && pred.predA !== undefined && pred.predA !== "" &&
+                         pred.predB !== null && pred.predB !== undefined && pred.predB !== "";
+    const isPlayed = m.status === "jugado";
+    const isLocked = isPlayed || isMatchLocked(m);
+    const isMissing = !hasPrediction && !isLocked;
+
+    if (isToday) return 1;
+    if (isMissing) return 2;
+    return 3;
+  };
+
+  const sortedMatches = [...state.matches].sort((a, b) => {
+    const priorityA = getMatchPriority(a);
+    const priorityB = getMatchPriority(b);
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    if (!a.isoDate) return 1;
+    if (!b.isoDate) return -1;
+    return new Date(a.isoDate) - new Date(b.isoDate);
+  });
+
+  let filteredMatches = sortedMatches;
+  if (currentFixtureFilter === "today") {
+    filteredMatches = sortedMatches.filter(m => isMatchToday(m));
+  } else if (currentFixtureFilter === "pending") {
+    filteredMatches = sortedMatches.filter(m => {
+      const pred = userPreds[m.id];
+      const hasPrediction = pred && pred.predA !== null && pred.predA !== undefined && pred.predA !== "" &&
+                           pred.predB !== null && pred.predB !== undefined && pred.predB !== "";
+      const isPlayed = m.status === "jugado";
+      const isLocked = isPlayed || isMatchLocked(m);
+      return !hasPrediction && !isLocked;
+    });
+  }
+
+  if (filteredMatches.length === 0) {
+    container.innerHTML = `
+      <div class="comic-card" style="grid-column: 1 / -1; text-align: center; padding: 40px; border-color: var(--secondary); background: var(--panel-bg);">
+        <div style="font-size: 3rem; margin-bottom: 15px;">📅</div>
+        <h3 style="font-family: var(--font-comic); font-size: 1.5rem; margin-bottom: 10px; color: var(--secondary);">No se encontraron partidos</h3>
+        <p style="color: var(--gray);">Intenta cambiar el filtro de visualización de arriba.</p>
+      </div>
+    `;
+    return;
+  }
+
+  filteredMatches.forEach(match => {
+    const pred = userPreds[match.id];
+    const hasPrediction = pred && pred.predA !== null && pred.predA !== undefined && pred.predA !== "" &&
+                         pred.predB !== null && pred.predB !== undefined && pred.predB !== "";
+    const isPlayed = match.status === "jugado";
+    const isLocked = isPlayed || isMatchLocked(match);
+    const isToday = isMatchToday(match);
+
+    const card = document.createElement("div");
+    card.className = "fixture-match-card";
+    if (isToday) {
+      card.classList.add("today-highlight");
+    }
+
+    const codeA = match.codeA || COUNTRY_CODES[match.teamA.toLowerCase().trim()];
+    const codeB = match.codeB || COUNTRY_CODES[match.teamB.toLowerCase().trim()];
+    const flagA = codeA 
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA}.svg" alt="${match.teamA}" style="width: 20px; height: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 2px;">`
+      : `<span>${match.emojiA || "🏳️"}</span>`;
+    const flagB = codeB 
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB}.svg" alt="${match.teamB}" style="width: 20px; height: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 2px;">`
+      : `<span>${match.emojiB || "🏳️"}</span>`;
+
+    const groupBadge = match.group ? ` | ${match.group}` : "";
+    const headerHTML = `
+      <div class="fixture-card-header">
+        <span>${match.stage.toUpperCase()}${groupBadge}</span>
+        ${isToday ? `<span style="background: var(--accent); color: var(--black); padding: 2px 6px; border-radius: 4px; font-weight: 800; font-family: var(--font-comic); font-size: 0.75rem;">HOY ⚽</span>` : ""}
+      </div>
+    `;
+
+    const teamsHTML = `
+      <div class="fixture-teams-row">
+        <div class="fixture-team team-a">
+          ${flagA}
+          <span class="full-name">${match.teamA}</span>
+          <span class="short-name" style="display: none;">${getTeamAbbreviation(match.teamA)}</span>
+        </div>
+        <div class="fixture-vs">VS</div>
+        <div class="fixture-team team-b">
+          <span class="full-name">${match.teamB}</span>
+          <span class="short-name" style="display: none;">${getTeamAbbreviation(match.teamB)}</span>
+          ${flagB}
+        </div>
+      </div>
+    `;
+
+    let statusBadgeHTML = "";
+    let actionBtnHTML = "";
+
+    if (hasPrediction) {
+      statusBadgeHTML = `
+        <span class="fixture-status-badge predicted">
+          🟢 Pronosticado (${pred.predA} - ${pred.predB})
+        </span>
+      `;
+    } else {
+      if (isLocked) {
+        statusBadgeHTML = `
+          <span class="fixture-status-badge missing" style="background: var(--gray); color: var(--black); opacity: 0.7;">
+            🔒 Cerrado sin pronóstico
+          </span>
+        `;
+      } else {
+        statusBadgeHTML = `
+          <span class="fixture-status-badge missing">
+            🔴 Falta Pronosticar
+          </span>
+        `;
+        actionBtnHTML = `
+          <button class="btn-fixture-go-predict" data-match-id="${match.id}">
+            ✍️ Pronosticar
+          </button>
+        `;
+      }
+    }
+
+    card.innerHTML = `
+      ${headerHTML}
+      ${teamsHTML}
+      <div style="font-size: 0.75rem; color: var(--accent); font-weight: bold; text-align: center; margin: 5px 0 10px 0;">
+        📅 ${match.date}
+      </div>
+      <div class="fixture-card-footer">
+        ${statusBadgeHTML}
+        ${actionBtnHTML}
+      </div>
+    `;
+
+    const btn = card.querySelector(".btn-fixture-go-predict");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        let targetTab = "Grupo A";
+        if (match.stage === "Fase de Grupos") {
+          targetTab = match.group;
+        } else if (match.stage === "Dieciseisavos de Final") {
+          targetTab = "Dieciseisavos";
+        } else if (match.stage === "Octavos de Final") {
+          targetTab = "Octavos";
+        } else if (match.stage === "Cuartos de Final") {
+          targetTab = "Cuartos";
+        } else if (match.stage === "Semifinal") {
+          targetTab = "Semifinales";
+        } else if (match.stage === "Tercer Puesto" || match.stage === "Gran Final") {
+          targetTab = "Finales";
+        }
+
+        switchView("predictions").then(() => {
+          switchPredictionsTab(targetTab).then(() => {
+            setTimeout(() => {
+              const el = document.getElementById(`ticket-${match.id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.style.transition = "all 0.5s ease";
+                el.style.boxShadow = "0 0 25px var(--accent)";
+                el.style.borderColor = "var(--accent)";
+                setTimeout(() => {
+                  el.style.boxShadow = "";
+                  el.style.borderColor = "";
+                }, 2500);
+              }
+            }, 350);
+          });
+        });
+      });
+    }
+
+    container.appendChild(card);
   });
 }
 
