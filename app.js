@@ -1068,7 +1068,6 @@ function renderFixtureView() {
 
 // Función para verificar si el partido ya está cerrado para pronósticos (menos de 15 minutos antes del inicio)
 function isMatchLocked(match) {
-  return false; // TEMPORALMENTE DESHABILITADO
   if (!match.isoDate) return false;
   const matchTime = new Date(match.isoDate).getTime();
   const limitTime = matchTime - 15 * 60 * 1000; // Límite: 15 minutos antes del partido
