@@ -107,7 +107,7 @@ const rawSchedule = [
   { t1: "Inglaterra", t2: "Croacia", day: 17, hour: "16:00" },
   { t1: "Ghana", t2: "Panamá", day: 17, hour: "19:00" },
   { t1: "Uzbekistán", t2: "Colombia", day: 17, hour: "22:00" },
-  { t1: "República Checa", t2: "Sudáfrica", day: 18, hour: "00:00" },
+  { t1: "República Checa", t2: "Sudáfrica", day: 18, hour: "12:00" },
   { t1: "Suiza", t2: "Bosnia y Herzegovina", day: 18, hour: "15:00" },
   { t1: "Canadá", t2: "Catar", day: 18, hour: "18:00" },
   { t1: "México", t2: "Corea del Sur", day: 18, hour: "21:00" },
@@ -621,6 +621,19 @@ function getAppState() {
       groupIds: []
     };
     parsedState.users.push(admin);
+  }
+
+  // Corrección en caliente para el partido Sudáfrica - República Checa del 18 de junio (cambiar de 00:00 a 12:00)
+  if (parsedState && parsedState.matches) {
+    parsedState.matches.forEach(m => {
+      if ((m.teamA === "Sudáfrica" && m.teamB === "República Checa") || (m.teamA === "República Checa" && m.teamB === "Sudáfrica")) {
+        if (m.isoDate && m.isoDate.includes("2026-06-18T00:00:00")) {
+          m.date = m.date.replace("00:00", "12:00");
+          m.isoDate = m.isoDate.replace("00:00:00", "12:00:00");
+        }
+      }
+    });
+    saveAppState(parsedState);
   }
 
   return parsedState;
