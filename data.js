@@ -1280,3 +1280,19 @@ async function removeUserFromGroup(email, groupId) {
     }
   }
 }
+
+async function changeAdminPassword(newPassword) {
+  const client = getSupabaseClient();
+  if (client) {
+    const { error } = await client.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+  }
+  
+  // Actualizar también en el estado local de memoria
+  const state = getAppState();
+  let admin = state.users.find(u => u.email === "lapollapatojv@gmail.com");
+  if (admin) {
+    admin.password = newPassword;
+  }
+  saveAppState(state);
+}

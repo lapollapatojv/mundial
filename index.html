@@ -252,7 +252,7 @@
         <div>
           <h2 class="comic-banner primary" style="margin-bottom: 5px;">TUS PRONÓSTICOS</h2>
           <p style="color: var(--gray); font-size: 0.9rem; margin-top: 5px;">
-            Introduce tus marcadores para los partidos. Puedes agregarlos y modificarlos <strong>hasta 30 minutos antes</strong> de cada encuentro. ¡No olvides guardar tus cambios!
+            Introduce tus marcadores para los partidos. Puedes agregarlos y modificarlos <strong>hasta 15 minutos antes</strong> de cada encuentro. ¡No olvides guardar tus cambios!
           </p>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -327,6 +327,24 @@
         <div class="speech-bubble" style="margin-bottom: 0; width: 100%;">
           ¡Ingresa los resultados reales del mundial o gestiona los grupos oficiales de juego!
         </div>
+      </div>
+
+      <!-- Sección: Cambiar Contraseña del Administrador -->
+      <div class="comic-card" style="margin-bottom: 25px;">
+        <h3 class="comic-label" style="font-size: 1.1rem; color: var(--secondary); margin-bottom: 15px; border-bottom: 2px solid var(--black); padding-bottom: 5px;">
+          🔑 CAMBIAR CONTRASEÑA DEL ADMINISTRADOR
+        </h3>
+        <form id="form-admin-change-password" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+          <div style="flex: 2; min-width: 200px;">
+            <label class="comic-label" for="admin-new-password" style="font-size: 0.8rem; margin-bottom: 4px;">Nueva Contraseña</label>
+            <input type="password" id="admin-new-password" class="comic-input" placeholder="Ingresa la nueva contraseña" required style="margin-bottom: 0; padding: 8px 12px; font-size: 0.9rem;">
+          </div>
+          <div style="flex: 1; display: flex; justify-content: flex-end;">
+            <button type="submit" class="comic-btn comic-btn-secondary" style="padding: 10px 20px; font-size: 0.95rem; border-width: 2px; height: 38px;">
+              Actualizar Contraseña 🔒
+            </button>
+          </div>
+        </form>
       </div>
 
       <!-- Sección: Crear Nuevo Grupo (Exclusivo Administradores) -->

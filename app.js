@@ -381,6 +381,24 @@ function setupEventListeners() {
     alert(`Grupo "${newGroup.name}" creado con éxito. ¡Los usuarios ya se pueden registrar en él!`);
   });
 
+  const formAdminChangePassword = document.getElementById("form-admin-change-password");
+  if (formAdminChangePassword) {
+    formAdminChangePassword.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newPassword = document.getElementById("admin-new-password").value.trim();
+      if (!newPassword) return;
+
+      try {
+        await changeAdminPassword(newPassword);
+        alert("¡Contraseña de administrador actualizada con éxito!");
+        formAdminChangePassword.reset();
+      } catch (err) {
+        console.error(err);
+        alert("Error al actualizar la contraseña: " + err.message);
+      }
+    });
+  }
+
   // Guardar Pronósticos (Botón superior e inferior)
   document.getElementById("btn-save-all-predictions").addEventListener("click", saveAllPredictionsFromUI);
   document.getElementById("btn-save-all-predictions-bottom").addEventListener("click", saveAllPredictionsFromUI);
@@ -687,19 +705,135 @@ function renderDashboard() {
   const breakdownDiv = document.getElementById("pot-distribution-breakdown");
   if (breakdownDiv) {
     breakdownDiv.innerHTML = "";
-    if (potDetails.potDist === "1st") {
-      breakdownDiv.innerHTML = `<div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>`;
-    } else if (potDetails.potDist === "1st-2nd") {
-      breakdownDiv.innerHTML = `
-        <div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>
-        <div>🥈 2do Lugar: Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}</div>
+    
+    // Verificar si la fase ha terminado (todos los partidos de la fase jugados)
+    const stateObj = getAppState();
+    const phaseMatches = stateObj.matches.filter(match => {
+      if (phaseFilter === "grupos") return match.stage === "Fase de Grupos";
+      if (phaseFilter === "llaves") return match.stage !== "Fase de Grupos";
+      return true; // "todas"
+    });
+    const isPhaseCompleted = phaseMatches.length > 0 && phaseMatches.every(m => m.status === "jugado");
+
+    if (isPhaseCompleted && leaderboard.length > 0) {
+      // Agrupar jugadores por puntuación para manejar empates en los puestos 1, 2 y 3
+      const distinctRanks = [];
+      leaderboard.forEach(player => {
+        if (distinctRanks.length < 3) {
+          const exists = distinctRanks.find(r => r.points === player.points && r.exact === player.exact);
+          if (!exists) {
+            distinctRanks.push({ points: player.points, exact: player.exact, players: [player] });
+          } else {
+            exists.players.push(player);
+          }
+        } else {
+          const exists = distinctRanks.find(r => r.points === player.points && r.exact === player.exact);
+          if (exists) {
+            exists.players.push(player);
+          }
+        }
+      });
+
+      // Aplicar estilos llamativos
+      breakdownDiv.style.flexDirection = "column";
+      breakdownDiv.style.alignItems = "center";
+      breakdownDiv.style.width = "100%";
+      breakdownDiv.style.gap = "10px";
+      breakdownDiv.style.background = "linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 69, 0, 0.2) 100%)";
+      breakdownDiv.style.border = "3px dashed var(--accent)";
+      breakdownDiv.style.borderRadius = "8px";
+      breakdownDiv.style.padding = "15px";
+      breakdownDiv.style.animation = "pulseGlow 2s infinite alternate";
+
+      let winnersHTML = `
+        <div style="font-size: 1.1rem; color: var(--accent); font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+          🎉 ¡GANADORES DE LA FASE! 🎉
+        </div>
       `;
-    } else if (potDetails.potDist === "1st-2nd-3rd") {
-      breakdownDiv.innerHTML = `
-        <div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>
-        <div>🥈 2do Lugar: Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}</div>
-        <div>🥉 3er Lugar: Bs. ${(potDetails.breakdown["3rd"] || 0).toFixed(2)}</div>
-      `;
+
+      if (potDetails.potDist === "1st" && distinctRanks[0]) {
+        const names = distinctRanks[0].players.map(p => `<span style="color: var(--white); background: var(--primary); padding: 3px 8px; border-radius: 4px; display: inline-block; margin: 2px; font-weight: 800; border: 1.5px solid #000; box-shadow: 2px 2px 0px #000;">${p.nickname}</span>`).join(" ");
+        winnersHTML += `
+          <div style="font-size: 1rem; color: #ffd700; text-shadow: 1px 1px 0px #000; text-align: center;">
+            🥇 1er Lugar (Bs. ${potDetails.totalPot.toFixed(2)}):
+            <div style="margin-top: 5px; font-size: 1.1rem;">${names}</div>
+          </div>
+        `;
+      } else if (potDetails.potDist === "1st-2nd") {
+        if (distinctRanks[0]) {
+          const names1 = distinctRanks[0].players.map(p => `<span style="color: var(--white); background: var(--primary); padding: 3px 8px; border-radius: 4px; display: inline-block; margin: 2px; font-weight: 800; border: 1.5px solid #000; box-shadow: 2px 2px 0px #000;">${p.nickname}</span>`).join(" ");
+          winnersHTML += `
+            <div style="font-size: 0.95rem; color: #ffd700; text-shadow: 1px 1px 0px #000; text-align: center;">
+              🥇 1er Lugar (Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}):
+              <div style="margin-top: 5px;">${names1}</div>
+            </div>
+          `;
+        }
+        if (distinctRanks[1]) {
+          const names2 = distinctRanks[1].players.map(p => `<span style="color: var(--white); background: var(--secondary); padding: 3px 8px; border-radius: 4px; display: inline-block; margin: 2px; font-weight: 800; border: 1.5px solid #000; box-shadow: 2px 2px 0px #000;">${p.nickname}</span>`).join(" ");
+          winnersHTML += `
+            <div style="font-size: 0.9rem; color: #c0c0c0; text-shadow: 1px 1px 0px #000; text-align: center; margin-top: 5px; border-top: 1px dashed rgba(255,255,255,0.1); width: 100%; padding-top: 8px;">
+              🥈 2do Lugar (Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}):
+              <div style="margin-top: 5px;">${names2}</div>
+            </div>
+          `;
+        }
+      } else if (potDetails.potDist === "1st-2nd-3rd") {
+        if (distinctRanks[0]) {
+          const names1 = distinctRanks[0].players.map(p => `<span style="color: var(--white); background: var(--primary); padding: 3px 8px; border-radius: 4px; display: inline-block; margin: 2px; font-weight: 800; border: 1.5px solid #000; box-shadow: 2px 2px 0px #000;">${p.nickname}</span>`).join(" ");
+          winnersHTML += `
+            <div style="font-size: 0.95rem; color: #ffd700; text-shadow: 1px 1px 0px #000; text-align: center;">
+              🥇 1er Lugar (Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}):
+              <div style="margin-top: 5px;">${names1}</div>
+            </div>
+          `;
+        }
+        if (distinctRanks[1]) {
+          const names2 = distinctRanks[1].players.map(p => `<span style="color: var(--white); background: var(--secondary); padding: 3px 8px; border-radius: 4px; display: inline-block; margin: 2px; font-weight: 800; border: 1.5px solid #000; box-shadow: 2px 2px 0px #000;">${p.nickname}</span>`).join(" ");
+          winnersHTML += `
+            <div style="font-size: 0.9rem; color: #c0c0c0; text-shadow: 1px 1px 0px #000; text-align: center; margin-top: 5px; border-top: 1px dashed rgba(255,255,255,0.1); width: 100%; padding-top: 8px;">
+              🥈 2do Lugar (Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}):
+              <div style="margin-top: 5px;">${names2}</div>
+            </div>
+          `;
+        }
+        if (distinctRanks[2]) {
+          const names3 = distinctRanks[2].players.map(p => `<span style="color: var(--white); background: #cd7f32; padding: 3px 8px; border-radius: 4px; display: inline-block; margin: 2px; font-weight: 800; border: 1.5px solid #000; box-shadow: 2px 2px 0px #000;">${p.nickname}</span>`).join(" ");
+          winnersHTML += `
+            <div style="font-size: 0.85rem; color: #cd7f32; text-shadow: 1px 1px 0px #000; text-align: center; margin-top: 5px; border-top: 1px dashed rgba(255,255,255,0.1); width: 100%; padding-top: 8px;">
+              🥉 3er Lugar (Bs. ${(potDetails.breakdown["3rd"] || 0).toFixed(2)}):
+              <div style="margin-top: 5px;">${names3}</div>
+            </div>
+          `;
+        }
+      }
+      breakdownDiv.innerHTML = winnersHTML;
+    } else {
+      // Restaurar estilos originales
+      breakdownDiv.style.flexDirection = "";
+      breakdownDiv.style.alignItems = "";
+      breakdownDiv.style.width = "";
+      breakdownDiv.style.gap = "15px";
+      breakdownDiv.style.background = "";
+      breakdownDiv.style.border = "";
+      breakdownDiv.style.borderRadius = "";
+      breakdownDiv.style.padding = "";
+      breakdownDiv.style.animation = "";
+
+      if (potDetails.potDist === "1st") {
+        breakdownDiv.innerHTML = `<div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>`;
+      } else if (potDetails.potDist === "1st-2nd") {
+        breakdownDiv.innerHTML = `
+          <div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>
+          <div>🥈 2do Lugar: Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}</div>
+        `;
+      } else if (potDetails.potDist === "1st-2nd-3rd") {
+        breakdownDiv.innerHTML = `
+          <div>🥇 1er Lugar: Bs. ${(potDetails.breakdown["1st"] || 0).toFixed(2)}</div>
+          <div>🥈 2do Lugar: Bs. ${(potDetails.breakdown["2nd"] || 0).toFixed(2)}</div>
+          <div>🥉 3er Lugar: Bs. ${(potDetails.breakdown["3rd"] || 0).toFixed(2)}</div>
+        `;
+      }
     }
   }
 
