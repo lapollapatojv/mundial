@@ -924,13 +924,14 @@ async function saveUserPrediction(email, matchId, predA, predB, groupId, penalty
       // Upsert de usuario previo en Supabase para satisfacer la constraint de foreign key
       if (groupId) {
         const user = state.users.find(u => u.email === email);
-        await client.from('users').upsert({
+        const { error: userError } = await client.from('users').upsert({
           email: emailKey,
           nickname: user ? user.nickname : email.split("@")[0]
         });
+        if (userError) throw userError;
       }
 
-      await client.from('predictions').upsert({
+      const { error: upsertError } = await client.from('predictions').upsert({
         email: emailKey,
         match_id: matchId,
         pred_a: pA,
@@ -938,8 +939,24 @@ async function saveUserPrediction(email, matchId, predA, predB, groupId, penalty
         penalty_winner: penaltyWinner,
         updated_at: new Date().toISOString()
       });
+
+      if (upsertError) {
+        if (upsertError.code === 'PGRST204' || (upsertError.message && upsertError.message.includes('penalty_winner'))) {
+          console.warn("⚠️ La columna 'penalty_winner' no existe en la tabla 'predictions' de Supabase. Reintentando guardar sin esta columna.");
+          const { error: retryError } = await client.from('predictions').upsert({
+            email: emailKey,
+            match_id: matchId,
+            pred_a: pA,
+            pred_b: pB,
+            updated_at: new Date().toISOString()
+          });
+          if (retryError) throw retryError;
+        } else {
+          throw upsertError;
+        }
+      }
     } catch (e) {
-      console.error("❌ Error al guardar pronóstico en Supabase:", e.message);
+      console.error("❌ Error al guardar pronóstico en Supabase:", e.message || e);
     }
   }
 }
@@ -980,15 +997,30 @@ async function updateMatchResult(matchId, scoreA, scoreB, penaltyWinner = null) 
     const client = getSupabaseClient();
     if (client) {
       try {
-        await client.from('matches').upsert({
+        const { error: upsertError } = await client.from('matches').upsert({
           id: matchId,
           score_a: sA,
           score_b: sB,
           status: status,
           penalty_winner: pPen
         });
+
+        if (upsertError) {
+          if (upsertError.code === 'PGRST204' || (upsertError.message && upsertError.message.includes('penalty_winner'))) {
+            console.warn("⚠️ La columna 'penalty_winner' no existe en la tabla 'matches' de Supabase. Reintentando guardar sin esta columna.");
+            const { error: retryError } = await client.from('matches').upsert({
+              id: matchId,
+              score_a: sA,
+              score_b: sB,
+              status: status
+            });
+            if (retryError) throw retryError;
+          } else {
+            throw upsertError;
+          }
+        }
       } catch (e) {
-        console.error("❌ Error al guardar resultado en Supabase:", e.message);
+        console.error("❌ Error al guardar resultado en Supabase:", e.message || e);
       }
     }
   }
