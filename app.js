@@ -29,7 +29,7 @@ const COUNTRY_CODES = {
 // Estado de la sesión actual
 let currentUser = null;
 let currentGroupId = null;
-let currentDashboardPhaseFilter = "grupos";
+let currentDashboardPhaseFilter = "llaves";
 let currentFixtureFilter = "today"; // "all", "today", "pending"
 
 // Elementos del DOM
@@ -408,13 +408,26 @@ function setupEventListeners() {
     switchView("predictions");
   });
 
-  // Delegación de eventos para el botón de auto-completar individual por partido
+  // Delegación de eventos para los tickets de partidos
   const containerMatches = document.getElementById("matches-tickets-container");
   if (containerMatches) {
+    // Escuchar clics para auto-completar y selección de penales
     containerMatches.addEventListener("click", (e) => {
-      const btn = e.target.closest(".btn-random-single");
-      if (btn) {
-        const scoreInputs = btn.closest(".score-inputs");
+      // 1. Clic en botón de penales (Play-offs)
+      const btnPen = e.target.closest(".penalty-btn");
+      if (btnPen && !btnPen.disabled) {
+        const container = btnPen.closest(".penalty-selector-container");
+        if (container) {
+          container.querySelectorAll(".penalty-btn").forEach(b => b.classList.remove("active"));
+          btnPen.classList.add("active");
+        }
+        return;
+      }
+
+      // 2. Clic en botón de autocompletar aleatorio
+      const btnRandom = e.target.closest(".btn-random-single");
+      if (btnRandom) {
+        const scoreInputs = btnRandom.closest(".score-inputs");
         if (scoreInputs) {
           const inputA = scoreInputs.querySelector(".pred-a");
           const inputB = scoreInputs.querySelector(".pred-b");
@@ -430,6 +443,25 @@ function setupEventListeners() {
             inputA.value = scoreA;
             inputB.value = scoreB;
             
+            // Mostrar/ocultar selector de penales reactivo si es empate
+            const ticket = btnRandom.closest(".ticket");
+            if (ticket) {
+              const matchId = ticket.id.replace("ticket-", "");
+              const state = getAppState();
+              const match = state.matches.find(m => m.id === matchId);
+              if (match && match.stage !== "Fase de Grupos") {
+                const penaltyContainer = document.getElementById(`penalties-${matchId}`);
+                if (penaltyContainer) {
+                  if (scoreA === scoreB) {
+                    penaltyContainer.style.display = "block";
+                  } else {
+                    penaltyContainer.style.display = "none";
+                    penaltyContainer.querySelectorAll(".penalty-btn").forEach(b => b.classList.remove("active"));
+                  }
+                }
+              }
+            }
+
             // Efecto destello cómic
             inputA.style.backgroundColor = "var(--primary)";
             inputB.style.backgroundColor = "var(--primary)";
@@ -441,6 +473,32 @@ function setupEventListeners() {
               inputA.style.color = "";
               inputB.style.color = "";
             }, 200);
+          }
+        }
+      }
+    });
+
+    // Escuchar cambios de teclado/entrada para mostrar/ocultar selector de penales reactivo
+    containerMatches.addEventListener("input", (e) => {
+      const input = e.target.closest(".pred-a, .pred-b");
+      if (input) {
+        const ticket = input.closest(".ticket");
+        if (ticket) {
+          const matchId = ticket.id.replace("ticket-", "");
+          const state = getAppState();
+          const match = state.matches.find(m => m.id === matchId);
+          if (match && match.stage !== "Fase de Grupos") {
+            const valA = ticket.querySelector(".pred-a").value;
+            const valB = ticket.querySelector(".pred-b").value;
+            const penaltyContainer = document.getElementById(`penalties-${matchId}`);
+            if (penaltyContainer) {
+              if (valA !== "" && valB !== "" && parseInt(valA) === parseInt(valB)) {
+                penaltyContainer.style.display = "block";
+              } else {
+                penaltyContainer.style.display = "none";
+                penaltyContainer.querySelectorAll(".penalty-btn").forEach(b => b.classList.remove("active"));
+              }
+            }
           }
         }
       }
@@ -559,7 +617,7 @@ function updateHeaderUI() {
           const newGroupId = e.target.value;
           currentGroupId = newGroupId;
           localStorage.setItem("session_group_id", newGroupId);
-          currentDashboardPhaseFilter = "grupos";
+          currentDashboardPhaseFilter = "llaves";
           
           // Refrescar el header y las vistas activas
           updateHeaderUI();
@@ -659,7 +717,7 @@ function renderDashboard() {
 
   if (group && group.mode === "dividida") {
     if (currentDashboardPhaseFilter !== "grupos" && currentDashboardPhaseFilter !== "llaves") {
-      currentDashboardPhaseFilter = "grupos";
+      currentDashboardPhaseFilter = "llaves";
     }
     phaseFilter = currentDashboardPhaseFilter;
     
@@ -897,7 +955,7 @@ function renderDashboard() {
 }
 
 // Variable de control para las pestañas de los pronósticos
-let activePredictionsTab = "Grupo A";
+let activePredictionsTab = "Dieciseisavos";
 
 // 2. Renderizar Pronósticos (Vista Entradas de Estadio con Pestañas)
 function renderPredictions() {
@@ -919,11 +977,11 @@ function renderPredictions() {
   // Obtener lista de las 12 grupos de la fase de grupos y añadir las fases finales individuales
   const groupNames = ["Grupo A", "Grupo B", "Grupo C", "Grupo D", "Grupo E", "Grupo F", "Grupo G", "Grupo H", "Grupo I", "Grupo J", "Grupo K", "Grupo L"];
   const knockoutTabs = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Finales"];
-  const allTabs = [...groupNames, ...knockoutTabs];
+  const allTabs = ["Dieciseisavos", ...groupNames, "Octavos", "Cuartos", "Semifinales", "Finales"];
 
   // Validación de seguridad por si cambia el estado
   if (!allTabs.includes(activePredictionsTab)) {
-    activePredictionsTab = "Grupo A";
+    activePredictionsTab = "Dieciseisavos";
   }
 
   // Renderizar la barra de sub-pestañas
@@ -935,6 +993,9 @@ function renderPredictions() {
       btn.className = "tab-btn";
       if (knockoutTabs.includes(tabName)) {
         btn.classList.add("finales-tab");
+      }
+      if (groupNames.includes(tabName)) {
+        btn.classList.add("grupo-tab-dimmed");
       }
       if (tabName === activePredictionsTab) {
         btn.classList.add("active");
@@ -977,6 +1038,42 @@ function renderPredictions() {
     tabHeader.innerHTML = `<h2 class="comic-banner primary" style="font-size: 1.6rem; transform: rotate(-1deg); padding: 8px 16px; margin-bottom: 10px;">${activePredictionsTab} ⚽</h2>`;
   }
   container.appendChild(tabHeader);
+
+  // Si la fase de grupos está completada y el grupo es "dividido", mostrar el ganador(es) de grupos
+  const currentGroup = state.groups.find(g => g.id === currentGroupId);
+  const groupStageMatches = state.matches.filter(m => m.stage === "Fase de Grupos");
+  const isGroupStageCompleted = groupStageMatches.length > 0 && groupStageMatches.every(m => m.status === "jugado");
+
+  if (currentGroup && currentGroup.mode === "dividida" && isGroupStageCompleted && groupNames.includes(activePredictionsTab)) {
+    const groupStageLeaderboard = getGroupLeaderboard(currentGroupId, "grupos");
+    if (groupStageLeaderboard.length > 0) {
+      const topScore = groupStageLeaderboard[0].points;
+      const topExact = groupStageLeaderboard[0].exact;
+      const winners = groupStageLeaderboard.filter(p => p.points === topScore && p.exact === topExact);
+      const winnerNames = winners.map(w => `<span style="color: var(--white); background: var(--primary); padding: 2px 6px; border-radius: 4px; display: inline-block; margin: 1px; font-weight: bold; border: 1px solid #000; font-size: 0.95rem;">${w.nickname}</span>`).join(" ");
+      
+      const banner = document.createElement("div");
+      banner.className = "comic-card";
+      banner.style.background = "linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 69, 0, 0.2) 100%)";
+      banner.style.border = "3px dashed var(--accent)";
+      banner.style.marginBottom = "20px";
+      banner.style.textAlign = "center";
+      banner.style.padding = "12px";
+      banner.style.animation = "pulseGlow 2s infinite alternate";
+      banner.innerHTML = `
+        <div style="font-size: 0.9rem; color: var(--accent); font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">
+          🏆 GANADOR(ES) DE LA FASE DE GRUPOS 🏆
+        </div>
+        <div style="font-size: 1rem; color: var(--white); font-weight: bold;">
+          ${winnerNames}
+        </div>
+        <div style="font-size: 0.8rem; color: var(--gray); margin-top: 5px;">
+          Puntaje Fase de Grupos: <strong>${topScore} pts</strong> | Aciertos Exactos: <strong>${topExact}</strong>
+        </div>
+      `;
+      container.appendChild(banner);
+    }
+  }
 
   // Renderizar encuentros secuencialmente
   matchesToRender.forEach(match => {
@@ -1086,10 +1183,10 @@ function renderFixtureView() {
     const codeA = match.codeA || COUNTRY_CODES[match.teamA.toLowerCase().trim()];
     const codeB = match.codeB || COUNTRY_CODES[match.teamB.toLowerCase().trim()];
     const flagA = codeA 
-      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA}.svg" alt="${match.teamA}" style="width: 20px; height: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 2px;">`
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA.toLowerCase()}.svg" alt="${match.teamA}" style="width: 20px; height: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 2px;">`
       : `<span>${match.emojiA || "🏳️"}</span>`;
     const flagB = codeB 
-      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB}.svg" alt="${match.teamB}" style="width: 20px; height: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 2px;">`
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB.toLowerCase()}.svg" alt="${match.teamB}" style="width: 20px; height: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 2px;">`
       : `<span>${match.emojiB || "🏳️"}</span>`;
 
     const groupBadge = match.group ? ` | ${match.group}` : "";
@@ -1217,9 +1314,13 @@ function getMatchTicketHTML(match, pred, index) {
   // Determinar puntos obtenidos y sticker si ya se jugó
   let pointsStickerHTML = "";
   if (isPlayed) {
-    const pointsEarned = calculatePredictionPoints(pred.predA, pred.predB, match.scoreA, match.scoreB);
-    if (pointsEarned === 3) {
+    const pointsEarned = calculatePredictionPoints(pred.predA, pred.predB, match.scoreA, match.scoreB, pred.penaltyWinner, match.penaltyWinner, match.stage);
+    if (pointsEarned === 4) {
+      pointsStickerHTML = `<div class="sticker-points exact">¡EXACTO + PENAL! +4 PTS</div>`;
+    } else if (pointsEarned === 3) {
       pointsStickerHTML = `<div class="sticker-points exact">¡EXACTO! +3 PTS</div>`;
+    } else if (pointsEarned === 2) {
+      pointsStickerHTML = `<div class="sticker-points">ACERTADO + PENAL! +2 PTS</div>`;
     } else if (pointsEarned === 1) {
       pointsStickerHTML = `<div class="sticker-points">ACERTADO +1 PT</div>`;
     } else {
@@ -1232,21 +1333,66 @@ function getMatchTicketHTML(match, pred, index) {
   const codeB = match.codeB || COUNTRY_CODES[match.teamB.toLowerCase().trim()];
 
   const flagAHTML = codeA 
-    ? `<img class="team-flag-img" src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA}.svg" alt="${match.teamA}">`
+    ? `<img class="team-flag-img" src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA.toLowerCase()}.svg" alt="${match.teamA}">`
     : `<span class="team-flag">${match.emojiA}</span>`;
 
   const flagBHTML = codeB 
-    ? `<img class="team-flag-img" src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB}.svg" alt="${match.teamB}">`
+    ? `<img class="team-flag-img" src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB.toLowerCase()}.svg" alt="${match.teamB}">`
     : `<span class="team-flag">${match.emojiB}</span>`;
 
   // Texto de estado y resultado real
   let statusTextHTML = "";
   if (isPlayed) {
-    statusTextHTML = `Resultado Real: <strong style="color: var(--white);">${match.scoreA} - ${match.scoreB}</strong>`;
+    let penaltyResultText = "";
+    if (match.scoreA === match.scoreB && match.penaltyWinner) {
+      const winnerName = match.penaltyWinner === "A" ? match.teamA : match.teamB;
+      penaltyResultText = ` <span style="color: var(--accent);">(Penales: Ganó ${winnerName})</span>`;
+    }
+    statusTextHTML = `Resultado Real: <strong style="color: var(--white);">${match.scoreA} - ${match.scoreB}</strong>${penaltyResultText}`;
   } else if (isMatchLocked(match)) {
     statusTextHTML = `<span style="color: var(--secondary); font-weight: bold;">🔒 Pronósticos cerrados (15m límite)</span>`;
   } else {
     statusTextHTML = `<span style="color: var(--primary);">🟢 Abierto para pronósticos</span>`;
+  }
+
+  // Bloque para predicción de penales en play-offs (empates)
+  let penaltySelectorHTML = "";
+  if (match.stage !== "Fase de Grupos") {
+    const isDrawPred = pred.predA !== null && pred.predA !== undefined && pred.predB !== null && pred.predB !== undefined && parseInt(pred.predA) === parseInt(pred.predB);
+    const showSelector = isDrawPred ? "block" : "none";
+    
+    // Resultados reales
+    let realPenaltyWinnerHTML = "";
+    if (isPlayed && match.scoreA === match.scoreB) {
+      const realWinnerName = match.penaltyWinner === "A" ? match.teamA : match.teamB;
+      const hitPenalties = pred.penaltyWinner === match.penaltyWinner;
+      const badgeClass = hitPenalties ? "exact" : "fail";
+      const badgeText = hitPenalties ? "¡ACERTASTE PENAL! +1 PT EXTRA" : `FALLADO (Ganó: ${realWinnerName})`;
+      realPenaltyWinnerHTML = `
+        <div style="margin-top: 8px; text-align: center;">
+          <div class="sticker-points ${badgeClass}" style="position: static; display: inline-block; transform: none; font-size: 0.75rem; padding: 2px 8px; font-weight: 800; border: 1.5px solid #000; box-shadow: 2px 2px 0px #000;">
+            ${badgeText}
+          </div>
+        </div>
+      `;
+    }
+
+    penaltySelectorHTML = `
+      <div class="penalty-selector-container" id="penalties-${match.id}" style="display: ${showSelector}; margin: 10px 0; text-align: center; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 10px;">
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px; color: var(--accent); text-transform: uppercase;">
+          🏆 ¿Quién clasifica por Penales?
+        </div>
+        <div style="display: inline-flex; gap: 10px; justify-content: center; width: 100%;">
+          <button type="button" class="comic-btn penalty-btn ${pred.penaltyWinner === 'A' ? 'active' : ''}" data-team="A" ${isLocked ? 'disabled' : ''} style="padding: 4px 10px; font-size: 0.8rem; flex: 1; text-transform: none; font-weight: bold;">
+            ${match.emojiA || '🇿🇦'} ${match.teamA}
+          </button>
+          <button type="button" class="comic-btn penalty-btn ${pred.penaltyWinner === 'B' ? 'active' : ''}" data-team="B" ${isLocked ? 'disabled' : ''} style="padding: 4px 10px; font-size: 0.8rem; flex: 1; text-transform: none; font-weight: bold;">
+            ${match.teamB} ${match.emojiB || '🇨🇦'}
+          </button>
+        </div>
+        ${realPenaltyWinnerHTML}
+      </div>
+    `;
   }
 
   return `
@@ -1289,6 +1435,9 @@ function getMatchTicketHTML(match, pred, index) {
             </span>
           </div>
         </div>
+
+        <!-- Predictor de Penales (para empates en Play-offs) -->
+        ${penaltySelectorHTML}
 
         <!-- Estado de cierre o resultado -->
         <div style="font-size: 0.8rem; color: var(--gray); text-align: center;">
@@ -1360,10 +1509,22 @@ async function saveAllPredictionsFromUI(silent = false) {
       const valA = container.querySelector(".pred-a").value;
       const valB = container.querySelector(".pred-b").value;
 
+      const ticket = container.closest(".ticket");
+      let penaltyWinner = null;
+      if (ticket) {
+        const activePenaltyBtn = ticket.querySelector(".penalty-btn.active");
+        if (activePenaltyBtn) {
+          penaltyWinner = activePenaltyBtn.getAttribute("data-team"); // "A" or "B"
+        }
+      }
+
       if (valA === "" || valB === "") {
-        promises.push(saveUserPrediction(currentUser.email, matchId, null, null, currentGroupId));
+        promises.push(saveUserPrediction(currentUser.email, matchId, null, null, currentGroupId, null));
       } else {
-        promises.push(saveUserPrediction(currentUser.email, matchId, parseInt(valA), parseInt(valB), currentGroupId));
+        const pA = parseInt(valA);
+        const pB = parseInt(valB);
+        const pWinner = (pA === pB) ? penaltyWinner : null;
+        promises.push(saveUserPrediction(currentUser.email, matchId, pA, pB, currentGroupId, pWinner));
         savedCount++;
       }
     } else {
@@ -1692,11 +1853,11 @@ function renderAdmin() {
     const codeB = match.codeB || COUNTRY_CODES[match.teamB.toLowerCase().trim()];
 
     const flagAAdmin = codeA 
-      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA}.svg" alt="${match.teamA}" style="width: 24px; height: 16px; border: 1px solid var(--black); border-radius: 2px; vertical-align: middle; margin-right: 5px;">`
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeA.toLowerCase()}.svg" alt="${match.teamA}" style="width: 24px; height: 16px; border: 1px solid var(--black); border-radius: 2px; vertical-align: middle; margin-right: 5px;">`
       : `<span style="margin-right: 5px;">${match.emojiA}</span>`;
 
     const flagBAdmin = codeB 
-      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB}.svg" alt="${match.teamB}" style="width: 24px; height: 16px; border: 1px solid var(--black); border-radius: 2px; vertical-align: middle; margin-left: 5px; margin-right: 5px;">`
+      ? `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/${codeB.toLowerCase()}.svg" alt="${match.teamB}" style="width: 24px; height: 16px; border: 1px solid var(--black); border-radius: 2px; vertical-align: middle; margin-left: 5px; margin-right: 5px;">`
       : `<span style="margin-left: 5px; margin-right: 5px;">${match.emojiB}</span>`;
 
     let teamsDisplayHTML = "";
@@ -1724,6 +1885,24 @@ function renderAdmin() {
       `;
     }
 
+    // Bloque para elegir ganador de penales real en admin (play-offs)
+    let adminPenaltySelectorHTML = "";
+    if (match.stage !== "Fase de Grupos") {
+      const showAdminPen = (scoreAVal !== "" && scoreBVal !== "" && parseInt(scoreAVal) === parseInt(scoreBVal)) ? "block" : "none";
+      adminPenaltySelectorHTML = `
+        <div class="admin-penalty-selector" style="display: ${showAdminPen}; margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 6px; width: 100%;">
+          <span style="font-size: 0.75rem; color: var(--accent); font-weight: bold; display: block; margin-bottom: 4px; text-transform: uppercase;">
+            🏆 Ganador Penales Real:
+          </span>
+          <select class="comic-input admin-penalty-winner" style="padding: 4px 8px; font-size: 0.85rem; margin-bottom: 0; width: 100%;">
+            <option value="">-- Seleccionar Ganador --</option>
+            <option value="A" ${match.penaltyWinner === "A" ? "selected" : ""}>${match.teamA}</option>
+            <option value="B" ${match.penaltyWinner === "B" ? "selected" : ""}>${match.teamB}</option>
+          </select>
+        </div>
+      `;
+    }
+
     card.innerHTML = `
       <div class="admin-match-details">
         <div style="font-size: 0.8rem; color: var(--accent); font-weight: bold; margin-bottom: 5px;">
@@ -1732,16 +1911,41 @@ function renderAdmin() {
         ${teamsDisplayHTML}
       </div>
 
-      <div class="admin-match-scores" data-match-id="${match.id}">
-        <input type="number" class="score-field admin-score-a" min="0" placeholder="-" value="${scoreAVal}" style="width: 45px; height: 45px;">
-        <span style="font-weight: bold; color: var(--secondary);">:</span>
-        <input type="number" class="score-field admin-score-b" min="0" placeholder="-" value="${scoreBVal}" style="width: 45px; height: 45px;">
-        
-        <button class="comic-btn comic-btn-primary btn-save-admin-score" style="padding: 10px 15px; font-size: 0.9rem; margin-left: 10px;">
-          OK
-        </button>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+        <div class="admin-match-scores" data-match-id="${match.id}">
+          <input type="number" class="score-field admin-score-a" min="0" placeholder="-" value="${scoreAVal}" style="width: 45px; height: 45px;">
+          <span style="font-weight: bold; color: var(--secondary);">:</span>
+          <input type="number" class="score-field admin-score-b" min="0" placeholder="-" value="${scoreBVal}" style="width: 45px; height: 45px;">
+          
+          <button class="comic-btn comic-btn-primary btn-save-admin-score" style="padding: 10px 15px; font-size: 0.9rem; margin-left: 10px;">
+            OK
+          </button>
+        </div>
+        ${adminPenaltySelectorHTML}
       </div>
     `;
+
+    // Reactividad en vivo para mostrar/ocultar el selector de penales en el panel admin
+    if (match.stage !== "Fase de Grupos") {
+      const inputAEl = card.querySelector(".admin-score-a");
+      const inputBEl = card.querySelector(".admin-score-b");
+      const adminPenCont = card.querySelector(".admin-penalty-selector");
+      
+      const checkScores = () => {
+        const valA = inputAEl.value;
+        const valB = inputBEl.value;
+        if (valA !== "" && valB !== "" && parseInt(valA) === parseInt(valB)) {
+          adminPenCont.style.display = "block";
+        } else {
+          adminPenCont.style.display = "none";
+          const sel = adminPenCont.querySelector(".admin-penalty-winner");
+          if (sel) sel.value = "";
+        }
+      };
+      
+      inputAEl.addEventListener("input", checkScores);
+      inputBEl.addEventListener("input", checkScores);
+    }
 
     // Asignar evento al botón de guardado individual de resultado real
     card.querySelector(".btn-save-admin-score").addEventListener("click", async () => {
@@ -1757,13 +1961,30 @@ function renderAdmin() {
         }
       }
 
+      let adminPenaltyWinner = null;
+      if (match.stage !== "Fase de Grupos") {
+        const sel = card.querySelector(".admin-penalty-winner");
+        if (sel) {
+          adminPenaltyWinner = sel.value || null;
+        }
+      }
+
       if (inputA === "" || inputB === "") {
         // Restaurar a pendiente
-        await updateMatchResult(match.id, null, null);
+        await updateMatchResult(match.id, null, null, null);
         alert(`Partido devuelto a PENDIENTE.`);
       } else {
         const isUpdate = match.status === "jugado";
-        await updateMatchResult(match.id, parseInt(inputA), parseInt(inputB));
+        const valA = parseInt(inputA);
+        const valB = parseInt(inputB);
+        const pWinner = (valA === valB) ? adminPenaltyWinner : null;
+        
+        if (valA === valB && !pWinner) {
+          alert("Por favor selecciona qué equipo ganó en penales para guardar.");
+          return;
+        }
+
+        await updateMatchResult(match.id, valA, valB, pWinner);
         
         // Efecto visual rápido de guardado exitoso en el botón
         const btn = card.querySelector(".btn-save-admin-score");

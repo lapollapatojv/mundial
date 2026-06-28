@@ -206,30 +206,56 @@ groupNames.forEach((gName) => {
 });
 
 // Dieciseisavos de Final (16 partidos, m73 a m88)
-for (let i = 1; i <= 16; i++) {
-  const day = 28 + Math.floor((i-1)/4);
-  const dayStr = String(day).padStart(2, '0');
-  const orderOnDay = (i - 1) % 4;
-  const hoursPool = ["13:00", "16:00", "19:00", "22:00"];
-  const hour = hoursPool[orderOnDay];
+// Dieciseisavos de Final (16 partidos, m73 a m88)
+const r32MatchesData = [
+  // Domingo 28 de Junio
+  { teamA: "Sudáfrica", teamB: "Canadá", date: "Junio 28 - 16:00 GMT-4 (Los Ángeles)", isoDate: "2026-06-28T16:00:00-04:00", emojiA: "🇿🇦", emojiB: "🇨🇦", codeA: "ZA", codeB: "CA" },
+  
+  // Lunes 29 de Junio
+  { teamA: "Brasil", teamB: "Japón", date: "Junio 29 - 13:00 GMT-4 (Houston)", isoDate: "2026-06-29T13:00:00-04:00", emojiA: "🇧🇷", emojiB: "🇯🇵", codeA: "BR", codeB: "JP" },
+  { teamA: "Alemania", teamB: "Paraguay", date: "Junio 29 - 16:00 GMT-4 (Boston)", isoDate: "2026-06-29T16:00:00-04:00", emojiA: "🇩🇪", emojiB: "🇵🇾", codeA: "DE", codeB: "PY" },
+  { teamA: "Países Bajos", teamB: "Marruecos", date: "Junio 29 - 19:00 GMT-4 (Monterrey)", isoDate: "2026-06-29T19:00:00-04:00", emojiA: "🇳🇱", emojiB: "🇲🇦", codeA: "NL", codeB: "MA" },
+  
+  // Martes 30 de Junio
+  { teamA: "Francia", teamB: "Suecia", date: "Junio 30 - 13:00 GMT-4 (N. York/N. Jersey)", isoDate: "2026-06-30T13:00:00-04:00", emojiA: "🇫🇷", emojiB: "🇸🇪", codeA: "FR", codeB: "SE" },
+  { teamA: "México", teamB: "Ecuador", date: "Junio 30 - 16:00 GMT-4 (Ciudad de México)", isoDate: "2026-06-30T16:00:00-04:00", emojiA: "🇲🇽", emojiB: "🇪🇨", codeA: "MX", codeB: "EC" },
+  { teamA: "Costa de Marfil", teamB: "Noruega", date: "Junio 30 - 19:00 GMT-4 (Dallas)", isoDate: "2026-06-30T19:00:00-04:00", emojiA: "🇨🇮", emojiB: "🇳🇴", codeA: "CI", codeB: "NO" },
+  
+  // Miércoles 1 de Julio
+  { teamA: "Inglaterra", teamB: "R. D. Congo", date: "Julio 1 - 13:00 GMT-4 (Atlanta)", isoDate: "2026-07-01T13:00:00-04:00", emojiA: "🇬🇧", emojiB: "🇨🇩", codeA: "GB", codeB: "CD" },
+  { teamA: "Bélgica", teamB: "Senegal", date: "Julio 1 - 16:00 GMT-4 (Seattle)", isoDate: "2026-07-01T16:00:00-04:00", emojiA: "🇧🇪", emojiB: "🇸🇳", codeA: "BE", codeB: "SN" },
+  { teamA: "Estados Unidos", teamB: "Bosnia y Herzegovina", date: "Julio 1 - 19:00 GMT-4 (San Francisco)", isoDate: "2026-07-01T19:00:00-04:00", emojiA: "🇺🇸", emojiB: "🇧🇦", codeA: "US", codeB: "BA" },
+  
+  // Jueves 2 de Julio
+  { teamA: "Suiza", teamB: "Argelia", date: "Julio 2 - 13:00 GMT-4 (Vancouver)", isoDate: "2026-07-02T13:00:00-04:00", emojiA: "🇨🇭", emojiB: "🇩🇿", codeA: "CH", codeB: "DZ" },
+  { teamA: "España", teamB: "Austria", date: "Julio 2 - 16:00 GMT-4 (Los Ángeles)", isoDate: "2026-07-02T16:00:00-04:00", emojiA: "🇪🇸", emojiB: "🇦🇹", codeA: "ES", codeB: "AT" },
+  { teamA: "Portugal", teamB: "Croacia", date: "Julio 2 - 20:00 GMT-4 (Toronto)", isoDate: "2026-07-02T20:00:00-04:00", emojiA: "🇵🇹", emojiB: "🇭🇷", codeA: "PT", codeB: "HR" },
+  
+  // Viernes 3 de Julio
+  { teamA: "Australia", teamB: "Egipto", date: "Julio 3 - 13:00 GMT-4 (Dallas)", isoDate: "2026-07-03T13:00:00-04:00", emojiA: "🇦🇺", emojiB: "🇪🇬", codeA: "AU", codeB: "EG" },
+  { teamA: "Argentina", teamB: "Cabo Verde", date: "Julio 3 - 16:00 GMT-4 (Miami)", isoDate: "2026-07-03T16:00:00-04:00", emojiA: "🇦🇷", emojiB: "🇨🇻", codeA: "AR", codeB: "CV" },
+  { teamA: "Colombia", teamB: "Ghana", date: "Julio 3 - 20:00 GMT-4 (Kansas City)", isoDate: "2026-07-03T20:00:00-04:00", emojiA: "🇨🇴", emojiB: "🇬🇭", codeA: "CO", codeB: "GH" }
+];
 
+r32MatchesData.forEach(m => {
   INITIAL_MATCHES.push({
     id: "m" + matchIdCounter++,
     stage: "Dieciseisavos de Final",
     group: null,
-    date: `Junio ${day} - ${hour} GMT-4`,
-    isoDate: `2026-06-${dayStr}T${hour}:00-04:00`,
-    teamA: `Ganador Llave ${2*i - 1}`,
-    teamB: `Segundo Llave ${2*i}`,
-    emojiA: "🏆",
-    emojiB: "🏆",
-    codeA: null,
-    codeB: null,
+    date: m.date,
+    isoDate: m.isoDate,
+    teamA: m.teamA,
+    teamB: m.teamB,
+    emojiA: m.emojiA,
+    emojiB: m.emojiB,
+    codeA: m.codeA,
+    codeB: m.codeB,
     scoreA: null,
     scoreB: null,
     status: "pendiente"
   });
-}
+});
+
 
 // Octavos de Final (8 partidos, m89 a m96)
 for (let i = 1; i <= 8; i++) {
@@ -353,7 +379,7 @@ INITIAL_MATCHES.push({
 
 // Usuarios por defecto para simular competencia
 const INITIAL_USERS = [
-  { email: "lapollapatojv@gmail.com", nickname: "Organizador (Admin)", groupIds: [], password: "Jambalaya.4910519" }
+  { email: "lapollapatojv@gmail.com", nickname: "Organizador (Admin)", groupIds: [] }
 ];
 
 // Pronósticos por defecto para los usuarios de prueba (Empezamos limpios)
@@ -478,7 +504,6 @@ async function syncStateFromSupabase() {
           userMap[cleanEmail] = {
             email: cleanEmail,
             nickname: u.nickname,
-            password: u.password || "",
             groupIds: []
           };
         } else {
@@ -504,7 +529,6 @@ async function syncStateFromSupabase() {
             userMap[cleanEmail] = {
               email: cleanEmail,
               nickname: dbU ? dbU.nickname : (cleanEmail === "lapollapatojv@gmail.com" ? "Organizador (Admin)" : cleanEmail.split("@")[0]),
-              password: dbU ? dbU.password || "" : "",
               groupIds: []
             };
           }
@@ -523,7 +547,6 @@ async function syncStateFromSupabase() {
         admin = {
           email: "lapollapatojv@gmail.com",
           nickname: "Organizador (Admin)",
-          password: "Jambalaya.4910519",
           groupIds: []
         };
         state.users.push(admin);
@@ -541,7 +564,8 @@ async function syncStateFromSupabase() {
         }
         state.predictions[cleanEmail][p.match_id] = {
           predA: p.pred_a,
-          predB: p.pred_b
+          predB: p.pred_b,
+          penaltyWinner: p.penalty_winner || null
         };
       });
     }
@@ -554,14 +578,51 @@ async function syncStateFromSupabase() {
           m.scoreA = dbM.score_a;
           m.scoreB = dbM.score_b;
           m.status = dbM.status;
-          if (dbM.team_a) m.teamA = dbM.team_a;
-          if (dbM.team_b) m.teamB = dbM.team_b;
-          if (dbM.emoji_a) m.emojiA = dbM.emoji_a;
-          if (dbM.emoji_b) m.emojiB = dbM.emoji_b;
-          if (dbM.code_a !== undefined && dbM.code_a !== null) m.codeA = dbM.code_a;
-          if (dbM.code_b !== undefined && dbM.code_b !== null) m.codeB = dbM.code_b;
+          m.penaltyWinner = dbM.penalty_winner || null;
+          
+          // Solo sobrescribir si el de la base de datos no es un genérico ("Ganador Llave...")
+          // cuando el local ya tiene un equipo real asignado
+          const isDbGeneric = dbM.team_a && (dbM.team_a.startsWith("Ganador Llave") || dbM.team_a.startsWith("Segundo Llave"));
+          const isLocalGeneric = m.teamA && (m.teamA.startsWith("Ganador/Segundo") || m.teamA.startsWith("Ganador Llave") || m.teamA.startsWith("Segundo Llave"));
+          
+          if (dbM.team_a && (!isDbGeneric || isLocalGeneric)) m.teamA = dbM.team_a;
+          if (dbM.team_b && (!isDbGeneric || isLocalGeneric)) m.teamB = dbM.team_b;
+          if (dbM.emoji_a && (!isDbGeneric || isLocalGeneric)) m.emojiA = dbM.emoji_a;
+          if (dbM.emoji_b && (!isDbGeneric || isLocalGeneric)) m.emojiB = dbM.emoji_b;
+          if (dbM.code_a !== undefined && dbM.code_a !== null && (!isDbGeneric || isLocalGeneric)) m.codeA = dbM.code_a;
+          if (dbM.code_b !== undefined && dbM.code_b !== null && (!isDbGeneric || isLocalGeneric)) m.codeB = dbM.code_b;
         }
       });
+
+      // Asegurar que los partidos confirmados de 16avos estén actualizados en Supabase
+      const confirmedIds = [
+        "m73", "m74", "m75", "m76", "m77", "m78", "m79", "m80",
+        "m81", "m82", "m83", "m84", "m85", "m86", "m87", "m88"
+      ];
+      for (const mId of confirmedIds) {
+        const localMatch = state.matches.find(x => x.id === mId);
+        const dbMatch = dbMatches.find(x => x.id === mId);
+        const dbIsGeneric = dbMatch && dbMatch.team_a && (dbMatch.team_a.startsWith("Ganador Llave") || dbMatch.team_a.startsWith("Segundo Llave"));
+        
+        if (localMatch && (!dbMatch || !dbMatch.team_a || dbIsGeneric)) {
+          try {
+            await client.from('matches').upsert({
+              id: mId,
+              team_a: localMatch.teamA,
+              team_b: localMatch.teamB,
+              emoji_a: localMatch.emojiA,
+              emoji_b: localMatch.emojiB,
+              code_a: localMatch.codeA,
+              code_b: localMatch.codeB,
+              date: localMatch.date,
+              iso_date: localMatch.isoDate
+            });
+            console.log(`✅ Partido ${mId} sincronizado en la base de datos de Supabase.`);
+          } catch (err) {
+            console.error(`❌ Error al subir partido ${mId} a Supabase:`, err.message);
+          }
+        }
+      }
 
       // Recalcular finalistas en cadena
       const m101 = state.matches.find(m => m.id === "m101");
@@ -581,7 +642,7 @@ async function syncStateFromSupabase() {
   }
 }
 
-const DB_VERSION = 16; // Incrementada a versión 16 para forzar la sincronización correcta de las llaves en minúsculas de predicciones
+const DB_VERSION = 21; // Incrementada a versión 21 para forzar orden cronológico de 16avos de final
 const STORAGE_KEY = "la_polla_mundialista_state";
 const VERSION_KEY = "la_polla_mundialista_db_version";
 
@@ -617,7 +678,6 @@ function getAppState() {
     admin = {
       email: "lapollapatojv@gmail.com",
       nickname: "Organizador (Admin)",
-      password: "Jambalaya.4910519",
       groupIds: []
     };
     parsedState.users.push(admin);
@@ -822,8 +882,7 @@ async function createGroup(name, entryFee, creatorEmail, joinSelf = true, potDis
         const dbEmail = `${creatorEmail}||${newId}`;
         await client.from('users').upsert({
           email: dbEmail,
-          nickname: "Organizador (Admin)",
-          password: "Jambalaya.4910519"
+          nickname: "Organizador (Admin)"
         });
         await client.from('user_groups').upsert({
           email: dbEmail,
@@ -839,7 +898,7 @@ async function createGroup(name, entryFee, creatorEmail, joinSelf = true, potDis
 }
 
 // Guardar o actualizar un pronóstico de un usuario
-async function saveUserPrediction(email, matchId, predA, predB, groupId) {
+async function saveUserPrediction(email, matchId, predA, predB, groupId, penaltyWinner = null) {
   const state = getAppState();
   email = email.trim().toLowerCase();
   const emailKey = groupId ? `${email}||${groupId}` : email;
@@ -853,7 +912,8 @@ async function saveUserPrediction(email, matchId, predA, predB, groupId) {
 
   state.predictions[emailKey][matchId] = {
     predA: pA,
-    predB: pB
+    predB: pB,
+    penaltyWinner: penaltyWinner
   };
 
   saveAppState(state);
@@ -866,8 +926,7 @@ async function saveUserPrediction(email, matchId, predA, predB, groupId) {
         const user = state.users.find(u => u.email === email);
         await client.from('users').upsert({
           email: emailKey,
-          nickname: user ? user.nickname : email.split("@")[0],
-          password: user ? user.password || "" : ""
+          nickname: user ? user.nickname : email.split("@")[0]
         });
       }
 
@@ -876,6 +935,7 @@ async function saveUserPrediction(email, matchId, predA, predB, groupId) {
         match_id: matchId,
         pred_a: pA,
         pred_b: pB,
+        penalty_winner: penaltyWinner,
         updated_at: new Date().toISOString()
       });
     } catch (e) {
@@ -885,26 +945,30 @@ async function saveUserPrediction(email, matchId, predA, predB, groupId) {
 }
 
 // Actualizar el resultado real de un partido (Acción de Admin)
-async function updateMatchResult(matchId, scoreA, scoreB) {
+async function updateMatchResult(matchId, scoreA, scoreB, penaltyWinner = null) {
   const state = getAppState();
   const match = state.matches.find(m => m.id === matchId);
   if (match) {
     let sA = null;
     let sB = null;
     let status = "pendiente";
+    let pPen = null;
 
     if (scoreA === null || scoreB === null || scoreA === "" || scoreB === "") {
       match.scoreA = null;
       match.scoreB = null;
       match.status = "pendiente";
+      match.penaltyWinner = null;
     } else {
       sA = parseInt(scoreA);
       sB = parseInt(scoreB);
       status = "jugado";
+      pPen = (sA === sB) ? penaltyWinner : null;
 
       match.scoreA = sA;
       match.scoreB = sB;
       match.status = status;
+      match.penaltyWinner = pPen;
 
       // Si es una semifinal, actualizar los equipos de la final de forma simulada
       if (matchId === "m101" || matchId === "m102") {
@@ -920,7 +984,8 @@ async function updateMatchResult(matchId, scoreA, scoreB) {
           id: matchId,
           score_a: sA,
           score_b: sB,
-          status: status
+          status: status,
+          penalty_winner: pPen
         });
       } catch (e) {
         console.error("❌ Error al guardar resultado en Supabase:", e.message);
@@ -1035,25 +1100,32 @@ function updateFinalists(state, matchId, finishedMatch) {
 }
 
 // Calcular puntos obtenidos por un pronóstico vs resultado real
-function calculatePredictionPoints(predA, predB, realA, realB) {
+function calculatePredictionPoints(predA, predB, realA, realB, predPen = null, realPen = null, stage = "") {
   if (predA === null || predB === null || realA === null || realB === null) {
     return 0;
   }
 
+  let points = 0;
+
   // Acierto exacto de goles
   if (predA === realA && predB === realB) {
-    return 3;
+    points = 3;
+  } else {
+    // Acierto de tendencia (Ganador o Empate)
+    const predTrend = Math.sign(predA - predB);
+    const realTrend = Math.sign(realA - realB);
+
+    if (predTrend === realTrend) {
+      points = 1;
+    }
   }
 
-  // Acierto de tendencia (Ganador o Empate)
-  const predTrend = Math.sign(predA - predB);
-  const realTrend = Math.sign(realA - realB);
-
-  if (predTrend === realTrend) {
-    return 1;
+  // +1 punto extra si acertaron el ganador de penales en empates de fases eliminatorias
+  if (points > 0 && realA === realB && stage !== "Fase de Grupos" && predPen && realPen && predPen === realPen) {
+    points += 1;
   }
 
-  return 0;
+  return points;
 }
 
 // Obtener tabla de clasificación (Leaderboard) para un grupo
@@ -1079,10 +1151,10 @@ function getGroupLeaderboard(groupId, phaseFilter = "todas") {
 
         const pred = userPreds[match.id];
         if (pred) {
-          const points = calculatePredictionPoints(pred.predA, pred.predB, match.scoreA, match.scoreB);
+          const points = calculatePredictionPoints(pred.predA, pred.predB, match.scoreA, match.scoreB, pred.penaltyWinner, match.penaltyWinner, match.stage);
           totalPoints += points;
-          if (points === 3) exactMatches++;
-          if (points === 1) trendMatches++;
+          if (points >= 3) exactMatches++; // Exact score (points could be 3 or 4 with pen)
+          if (points === 1 || points === 2) trendMatches++; // Trend accuracy (points could be 1 or 2 with pen)
         }
       }
     });
@@ -1287,12 +1359,4 @@ async function changeAdminPassword(newPassword) {
     const { error } = await client.auth.updateUser({ password: newPassword });
     if (error) throw error;
   }
-  
-  // Actualizar también en el estado local de memoria
-  const state = getAppState();
-  let admin = state.users.find(u => u.email === "lapollapatojv@gmail.com");
-  if (admin) {
-    admin.password = newPassword;
-  }
-  saveAppState(state);
 }

@@ -362,6 +362,23 @@ body {
   text-shadow: 1px 1px 0px var(--black);
 }
 
+.tab-btn.grupo-tab-dimmed {
+  opacity: 0.6;
+  filter: contrast(0.85);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.grupo-tab-dimmed:hover {
+  opacity: 0.85;
+}
+
+.tab-btn.grupo-tab-dimmed.active {
+  opacity: 1;
+  filter: none;
+  background: var(--primary);
+  color: var(--black);
+}
+
 .team-name {
   font-family: var(--font-comic);
   font-size: 1.55rem;
@@ -1347,4 +1364,22 @@ header {
     box-shadow: inset 0 0 20px rgba(255, 215, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.3), var(--comic-shadow-sm);
     border-color: #ffd700;
   }
+}
+
+/* Estilos para el selector de penales de play-offs */
+.penalty-btn {
+  background: var(--light-gray);
+  color: var(--white);
+  border-color: var(--black);
+  transition: all 0.1s ease;
+}
+.penalty-btn:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-1px);
+}
+.penalty-btn.active {
+  background: var(--accent) !important;
+  color: var(--black) !important;
+  border-color: var(--black) !important;
+  box-shadow: 2px 2px 0px var(--black) !important;
 }
