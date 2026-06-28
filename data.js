@@ -209,32 +209,32 @@ groupNames.forEach((gName) => {
 // Dieciseisavos de Final (16 partidos, m73 a m88)
 const r32MatchesData = [
   // Domingo 28 de Junio
-  { teamA: "Sudáfrica", teamB: "Canadá", date: "Junio 28 - 16:00 GMT-4 (Los Ángeles)", isoDate: "2026-06-28T16:00:00-04:00", emojiA: "🇿🇦", emojiB: "🇨🇦", codeA: "ZA", codeB: "CA" },
+  { teamA: "Sudáfrica", teamB: "Canadá", date: "Junio 28 - 15:00 GMT-4 (Los Ángeles)", isoDate: "2026-06-28T15:00:00-04:00", emojiA: "🇿🇦", emojiB: "🇨🇦", codeA: "ZA", codeB: "CA" },
   
   // Lunes 29 de Junio
   { teamA: "Brasil", teamB: "Japón", date: "Junio 29 - 13:00 GMT-4 (Houston)", isoDate: "2026-06-29T13:00:00-04:00", emojiA: "🇧🇷", emojiB: "🇯🇵", codeA: "BR", codeB: "JP" },
-  { teamA: "Alemania", teamB: "Paraguay", date: "Junio 29 - 16:00 GMT-4 (Boston)", isoDate: "2026-06-29T16:00:00-04:00", emojiA: "🇩🇪", emojiB: "🇵🇾", codeA: "DE", codeB: "PY" },
-  { teamA: "Países Bajos", teamB: "Marruecos", date: "Junio 29 - 19:00 GMT-4 (Monterrey)", isoDate: "2026-06-29T19:00:00-04:00", emojiA: "🇳🇱", emojiB: "🇲🇦", codeA: "NL", codeB: "MA" },
+  { teamA: "Alemania", teamB: "Paraguay", date: "Junio 29 - 16:30 GMT-4 (Boston)", isoDate: "2026-06-29T16:30:00-04:00", emojiA: "🇩🇪", emojiB: "🇵🇾", codeA: "DE", codeB: "PY" },
+  { teamA: "Países Bajos", teamB: "Marruecos", date: "Junio 29 - 21:00 GMT-4 (Monterrey)", isoDate: "2026-06-29T21:00:00-04:00", emojiA: "🇳🇱", emojiB: "🇲🇦", codeA: "NL", codeB: "MA" },
   
   // Martes 30 de Junio
-  { teamA: "Francia", teamB: "Suecia", date: "Junio 30 - 13:00 GMT-4 (N. York/N. Jersey)", isoDate: "2026-06-30T13:00:00-04:00", emojiA: "🇫🇷", emojiB: "🇸🇪", codeA: "FR", codeB: "SE" },
-  { teamA: "México", teamB: "Ecuador", date: "Junio 30 - 16:00 GMT-4 (Ciudad de México)", isoDate: "2026-06-30T16:00:00-04:00", emojiA: "🇲🇽", emojiB: "🇪🇨", codeA: "MX", codeB: "EC" },
-  { teamA: "Costa de Marfil", teamB: "Noruega", date: "Junio 30 - 19:00 GMT-4 (Dallas)", isoDate: "2026-06-30T19:00:00-04:00", emojiA: "🇨🇮", emojiB: "🇳🇴", codeA: "CI", codeB: "NO" },
+  { teamA: "Francia", teamB: "Suecia", date: "Junio 30 - 17:00 GMT-4 (N. York/N. Jersey)", isoDate: "2026-06-30T17:00:00-04:00", emojiA: "🇫🇷", emojiB: "🇸🇪", codeA: "FR", codeB: "SE" },
+  { teamA: "México", teamB: "Ecuador", date: "Junio 30 - 21:00 GMT-4 (Ciudad de México)", isoDate: "2026-06-30T21:00:00-04:00", emojiA: "🇲🇽", emojiB: "🇪🇨", codeA: "MX", codeB: "EC" },
+  { teamA: "Costa de Marfil", teamB: "Noruega", date: "Junio 30 - 13:00 GMT-4 (Dallas)", isoDate: "2026-06-30T13:00:00-04:00", emojiA: "🇨🇮", emojiB: "🇳🇴", codeA: "CI", codeB: "NO" },
   
   // Miércoles 1 de Julio
-  { teamA: "Inglaterra", teamB: "R. D. Congo", date: "Julio 1 - 13:00 GMT-4 (Atlanta)", isoDate: "2026-07-01T13:00:00-04:00", emojiA: "🇬🇧", emojiB: "🇨🇩", codeA: "GB", codeB: "CD" },
+  { teamA: "Inglaterra", teamB: "R. D. Congo", date: "Julio 1 - 12:00 GMT-4 (Atlanta)", isoDate: "2026-07-01T12:00:00-04:00", emojiA: "🇬🇧", emojiB: "🇨🇩", codeA: "GB", codeB: "CD" },
   { teamA: "Bélgica", teamB: "Senegal", date: "Julio 1 - 16:00 GMT-4 (Seattle)", isoDate: "2026-07-01T16:00:00-04:00", emojiA: "🇧🇪", emojiB: "🇸🇳", codeA: "BE", codeB: "SN" },
-  { teamA: "Estados Unidos", teamB: "Bosnia y Herzegovina", date: "Julio 1 - 19:00 GMT-4 (San Francisco)", isoDate: "2026-07-01T19:00:00-04:00", emojiA: "🇺🇸", emojiB: "🇧🇦", codeA: "US", codeB: "BA" },
+  { teamA: "Estados Unidos", teamB: "Bosnia y Herzegovina", date: "Julio 1 - 20:00 GMT-4 (San Francisco)", isoDate: "2026-07-01T20:00:00-04:00", emojiA: "🇺🇸", emojiB: "🇧🇦", codeA: "US", codeB: "BA" },
   
   // Jueves 2 de Julio
-  { teamA: "Suiza", teamB: "Argelia", date: "Julio 2 - 13:00 GMT-4 (Vancouver)", isoDate: "2026-07-02T13:00:00-04:00", emojiA: "🇨🇭", emojiB: "🇩🇿", codeA: "CH", codeB: "DZ" },
-  { teamA: "España", teamB: "Austria", date: "Julio 2 - 16:00 GMT-4 (Los Ángeles)", isoDate: "2026-07-02T16:00:00-04:00", emojiA: "🇪🇸", emojiB: "🇦🇹", codeA: "ES", codeB: "AT" },
-  { teamA: "Portugal", teamB: "Croacia", date: "Julio 2 - 20:00 GMT-4 (Toronto)", isoDate: "2026-07-02T20:00:00-04:00", emojiA: "🇵🇹", emojiB: "🇭🇷", codeA: "PT", codeB: "HR" },
+  { teamA: "Suiza", teamB: "Argelia", date: "Julio 2 - 23:00 GMT-4 (Vancouver)", isoDate: "2026-07-02T23:00:00-04:00", emojiA: "🇨🇭", emojiB: "🇩🇿", codeA: "CH", codeB: "DZ" },
+  { teamA: "España", teamB: "Austria", date: "Julio 2 - 15:00 GMT-4 (Los Ángeles)", isoDate: "2026-07-02T15:00:00-04:00", emojiA: "🇪🇸", emojiB: "🇦🇹", codeA: "ES", codeB: "AT" },
+  { teamA: "Portugal", teamB: "Croacia", date: "Julio 2 - 19:00 GMT-4 (Toronto)", isoDate: "2026-07-02T19:00:00-04:00", emojiA: "🇵🇹", emojiB: "🇭🇷", codeA: "PT", codeB: "HR" },
   
   // Viernes 3 de Julio
-  { teamA: "Australia", teamB: "Egipto", date: "Julio 3 - 13:00 GMT-4 (Dallas)", isoDate: "2026-07-03T13:00:00-04:00", emojiA: "🇦🇺", emojiB: "🇪🇬", codeA: "AU", codeB: "EG" },
-  { teamA: "Argentina", teamB: "Cabo Verde", date: "Julio 3 - 16:00 GMT-4 (Miami)", isoDate: "2026-07-03T16:00:00-04:00", emojiA: "🇦🇷", emojiB: "🇨🇻", codeA: "AR", codeB: "CV" },
-  { teamA: "Colombia", teamB: "Ghana", date: "Julio 3 - 20:00 GMT-4 (Kansas City)", isoDate: "2026-07-03T20:00:00-04:00", emojiA: "🇨🇴", emojiB: "🇬🇭", codeA: "CO", codeB: "GH" }
+  { teamA: "Australia", teamB: "Egipto", date: "Julio 3 - 14:00 GMT-4 (Dallas)", isoDate: "2026-07-03T14:00:00-04:00", emojiA: "🇦🇺", emojiB: "🇪🇬", codeA: "AU", codeB: "EG" },
+  { teamA: "Argentina", teamB: "Cabo Verde", date: "Julio 3 - 18:00 GMT-4 (Miami)", isoDate: "2026-07-03T18:00:00-04:00", emojiA: "🇦🇷", emojiB: "🇨🇻", codeA: "AR", codeB: "CV" },
+  { teamA: "Colombia", teamB: "Ghana", date: "Julio 3 - 21:30 GMT-4 (Kansas City)", isoDate: "2026-07-03T21:30:00-04:00", emojiA: "🇨🇴", emojiB: "🇬🇭", codeA: "CO", codeB: "GH" }
 ];
 
 r32MatchesData.forEach(m => {
@@ -683,13 +683,35 @@ function getAppState() {
     parsedState.users.push(admin);
   }
 
-  // Corrección en caliente para el partido Sudáfrica - República Checa del 18 de junio (cambiar de 00:00 a 12:00)
+  // Sincronizar metadatos de partidos en caliente desde INITIAL_MATCHES (fechas, horas, equipos fijos, banderas)
   if (parsedState && parsedState.matches) {
     parsedState.matches.forEach(m => {
-      if ((m.teamA === "Sudáfrica" && m.teamB === "República Checa") || (m.teamA === "República Checa" && m.teamB === "Sudáfrica")) {
-        if (m.isoDate && m.isoDate.includes("2026-06-18T00:00:00")) {
-          m.date = m.date.replace("00:00", "12:00");
-          m.isoDate = m.isoDate.replace("00:00:00", "12:00:00");
+      const initialM = INITIAL_MATCHES.find(x => x.id === m.id);
+      if (initialM) {
+        m.date = initialM.date;
+        m.isoDate = initialM.isoDate;
+        m.stage = initialM.stage;
+        m.group = initialM.group;
+        
+        if (initialM.stage === "Fase de Grupos") {
+          m.teamA = initialM.teamA;
+          m.teamB = initialM.teamB;
+          m.emojiA = initialM.emojiA;
+          m.emojiB = initialM.emojiB;
+          m.codeA = initialM.codeA;
+          m.codeB = initialM.codeB;
+        } else {
+          // Para eliminatorias, si INITIAL_MATCHES tiene un nombre de equipo real (no marcador), sincronizar
+          if (initialM.teamA && !initialM.teamA.includes("Ganador") && !initialM.teamA.includes("Segundo")) {
+            m.teamA = initialM.teamA;
+            m.emojiA = initialM.emojiA;
+            m.codeA = initialM.codeA;
+          }
+          if (initialM.teamB && !initialM.teamB.includes("Ganador") && !initialM.teamB.includes("Segundo")) {
+            m.teamB = initialM.teamB;
+            m.emojiB = initialM.emojiB;
+            m.codeB = initialM.codeB;
+          }
         }
       }
     });
