@@ -809,7 +809,7 @@ async function authenticateUser(email, nickname, groupId, password) {
 }
 
 // Inicio de sesión de un usuario con Supabase Auth
-async function loginUser(email, password, groupId) {
+async function loginUser(email, password) {
   email = email.trim().toLowerCase();
   const pass = (password || "").trim();
   const client = getSupabaseClient();
@@ -828,35 +828,14 @@ async function loginUser(email, password, groupId) {
   const state = getAppState();
   let user = state.users.find(u => u.email === email);
 
-  if (client) {
-    const emailKey = `${email}||${groupId}`;
-    const { data: relData } = await client.from('user_groups').select('*').eq('email', emailKey).eq('group_id', groupId);
-    if (!relData || relData.length === 0) {
-      // Asociar al grupo si es el admin que está entrando
-      if (email === "lapollapatojv@gmail.com") {
-        await client.from('user_groups').upsert({
-          email: emailKey,
-          group_id: groupId
-        });
-      } else {
-        throw new Error("No perteneces a este grupo. Regístrate en él en la pestaña 'Registrarse' para unirte.");
-      }
-    }
-  }
-
   if (!user) {
     user = {
       email: email,
       nickname: email.split("@")[0],
-      groupIds: [groupId]
+      groupIds: []
     };
     state.users.push(user);
     saveAppState(state);
-  } else {
-    if (!user.groupIds.includes(groupId)) {
-      user.groupIds.push(groupId);
-      saveAppState(state);
-    }
   }
 
   return user;

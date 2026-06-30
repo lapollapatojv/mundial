@@ -202,20 +202,36 @@ function setupEventListeners() {
     e.preventDefault();
     const email = loginEmail.value.trim().toLowerCase();
     const password = loginPassword.value;
-    const groupId = loginGroupSelect.value;
-
-    if (!groupId) {
-      alert("Por favor selecciona un grupo para ingresar.");
-      return;
-    }
 
     try {
-      const user = await loginUser(email, password, groupId);
+      const user = await loginUser(email, password);
       currentUser = user;
-      currentGroupId = groupId;
 
-      // Guardar sesión
-      localStorage.setItem("session_group_id", groupId);
+      // Determinar qué grupo mostrar
+      let targetGroupId = localStorage.getItem("session_group_id");
+      
+      // Si el usuario no pertenece al grupo de la sesión anterior o no hay sesión guardada
+      if (!targetGroupId || !user.groupIds.includes(targetGroupId)) {
+        if (user.groupIds.length > 0) {
+          targetGroupId = user.groupIds[0];
+        } else if (email === "lapollapatojv@gmail.com") {
+          // Si es el admin, puede entrar a cualquier grupo
+          const state = getAppState();
+          targetGroupId = state.groups.length > 0 ? state.groups[0].id : null;
+        } else {
+          targetGroupId = null;
+        }
+      }
+
+      if (!targetGroupId && email !== "lapollapatojv@gmail.com") {
+        alert("No perteneces a ningún grupo de juego. Por favor regístrate en un grupo para ingresar.");
+        return;
+      }
+
+      currentGroupId = targetGroupId;
+      if (currentGroupId) {
+        localStorage.setItem("session_group_id", currentGroupId);
+      }
 
       updateHeaderUI();
       switchView("dashboard");

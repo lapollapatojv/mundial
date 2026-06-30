@@ -55,7 +55,7 @@
         <!-- 1. Formulario de Inicio de Sesión de Usuario -->
         <form id="form-user-login">
           <div class="speech-bubble" style="font-size: 0.85rem; padding: 8px 12px; margin-bottom: 15px; width: 100%;">
-            ¡Ingresa con tu correo, contraseña y selecciona tu grupo de juego activo!
+            ¡Ingresa con tu correo y contraseña!
           </div>
           <div class="form-group">
             <label class="comic-label" for="login-email">Correo Electrónico</label>
@@ -65,9 +65,9 @@
             <label class="comic-label" for="login-password">Contraseña</label>
             <input type="password" id="login-password" class="comic-input" placeholder="Ingresa tu contraseña" required>
           </div>
-          <div class="form-group">
+          <div class="form-group d-none">
             <label class="comic-label" for="login-group">Seleccionar Grupo de Juego</label>
-            <select id="login-group" class="comic-input comic-select" required>
+            <select id="login-group" class="comic-input comic-select">
               <!-- Cargado dinámicamente -->
             </select>
           </div>
@@ -481,7 +481,7 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="data.js?v=56"></script>
-  <script src="app.js?v=56"></script>
+  <script src="data.js?v=57"></script>
+  <script src="app.js?v=57"></script>
 </body>
 </html>
