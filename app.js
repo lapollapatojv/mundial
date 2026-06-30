@@ -109,6 +109,11 @@ async function initApp() {
   // Configurar las pestañas del landing page
   setupAuthTabs();
 
+  // Detectar si venimos de un enlace de recuperación de contraseña
+  const isRecovery = window.location.hash.includes("type=recovery") || 
+                     window.location.hash.includes("recovery") ||
+                     window.location.href.includes("type=recovery");
+
   // Restaurar sesión si existe
   const client = getSupabaseClient();
   let sessionUser = null;
@@ -129,6 +134,17 @@ async function initApp() {
         if (formUserResetPassword) formUserResetPassword.classList.remove("d-none");
       }
     });
+  }
+
+  // Si estamos en flujo de recuperación de contraseña, no autologear al dashboard y mostrar reset form
+  if (isRecovery) {
+    console.log("In recovery mode. Showing reset form.");
+    switchView("auth");
+    formUserLogin.classList.add("d-none");
+    formUserRegister.classList.add("d-none");
+    if (formUserRecovery) formUserRecovery.classList.add("d-none");
+    if (formUserResetPassword) formUserResetPassword.classList.remove("d-none");
+    return;
   }
 
   const savedGroupId = localStorage.getItem("session_group_id");
