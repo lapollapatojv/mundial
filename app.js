@@ -32,6 +32,11 @@ let currentGroupId = null;
 let currentDashboardPhaseFilter = "llaves";
 let currentFixtureFilter = "today"; // "all", "today", "pending"
 
+// Detectar si venimos de un enlace de recuperación de contraseña (debe hacerse de inmediato antes de que Supabase limpie el hash de la URL)
+const IS_PASSWORD_RECOVERY_FLOW = window.location.hash.includes("type=recovery") || 
+                                  window.location.hash.includes("recovery") ||
+                                  window.location.href.includes("type=recovery");
+
 // Elementos del DOM
 const headerLogo = document.getElementById("header-logo");
 const navContainer = document.getElementById("nav-container");
@@ -109,11 +114,6 @@ async function initApp() {
   // Configurar las pestañas del landing page
   setupAuthTabs();
 
-  // Detectar si venimos de un enlace de recuperación de contraseña
-  const isRecovery = window.location.hash.includes("type=recovery") || 
-                     window.location.hash.includes("recovery") ||
-                     window.location.href.includes("type=recovery");
-
   // Restaurar sesión si existe
   const client = getSupabaseClient();
   let sessionUser = null;
@@ -137,7 +137,7 @@ async function initApp() {
   }
 
   // Si estamos en flujo de recuperación de contraseña, no autologear al dashboard y mostrar reset form
-  if (isRecovery) {
+  if (IS_PASSWORD_RECOVERY_FLOW) {
     console.log("In recovery mode. Showing reset form.");
     switchView("auth");
     formUserLogin.classList.add("d-none");
