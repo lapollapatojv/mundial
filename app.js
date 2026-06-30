@@ -60,6 +60,12 @@ const formUserLogin = document.getElementById("form-user-login");
 const loginEmail = document.getElementById("login-email");
 const loginPassword = document.getElementById("login-password");
 const loginGroupSelect = document.getElementById("login-group");
+const formUserRecovery = document.getElementById("form-user-recovery");
+const formUserResetPassword = document.getElementById("form-user-reset-password");
+const linkForgotPassword = document.getElementById("link-forgot-password");
+const btnBackToLogin = document.getElementById("btn-back-to-login");
+const recoveryEmail = document.getElementById("recovery-email");
+const resetNewPassword = document.getElementById("reset-new-password");
 
 const formUserRegister = document.getElementById("form-user-register");
 const registerEmail = document.getElementById("register-email");
@@ -111,6 +117,18 @@ async function initApp() {
     if (sessionData && sessionData.session) {
       sessionUser = sessionData.session.user;
     }
+
+    // Configurar listener para eventos de autenticación (recuperación de contraseña)
+    client.auth.onAuthStateChange(async (event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        console.log("Password recovery event triggered.");
+        switchView("auth");
+        formUserLogin.classList.add("d-none");
+        formUserRegister.classList.add("d-none");
+        if (formUserRecovery) formUserRecovery.classList.add("d-none");
+        if (formUserResetPassword) formUserResetPassword.classList.remove("d-none");
+      }
+    });
   }
 
   const savedGroupId = localStorage.getItem("session_group_id");
@@ -146,6 +164,8 @@ function setupAuthTabs() {
     formUserLogin.classList.remove("d-none");
     formUserRegister.classList.add("d-none");
     formAdminLogin.classList.add("d-none");
+    if (formUserRecovery) formUserRecovery.classList.add("d-none");
+    if (formUserResetPassword) formUserResetPassword.classList.add("d-none");
   });
 
   tabAuthRegister.addEventListener("click", () => {
@@ -157,6 +177,8 @@ function setupAuthTabs() {
     formUserLogin.classList.add("d-none");
     formUserRegister.classList.remove("d-none");
     formAdminLogin.classList.add("d-none");
+    if (formUserRecovery) formUserRecovery.classList.add("d-none");
+    if (formUserResetPassword) formUserResetPassword.classList.add("d-none");
   });
 
   tabAuthAdmin.addEventListener("click", () => {
@@ -168,6 +190,8 @@ function setupAuthTabs() {
     formUserLogin.classList.add("d-none");
     formUserRegister.classList.add("d-none");
     formAdminLogin.classList.remove("d-none");
+    if (formUserRecovery) formUserRecovery.classList.add("d-none");
+    if (formUserResetPassword) formUserResetPassword.classList.add("d-none");
   });
 }
 
@@ -545,6 +569,65 @@ function setupEventListeners() {
       currentFixtureFilter = "pending";
       setActiveFixtureFilterButton(btnFilterPending);
       renderFixtureView();
+    });
+  }
+
+  // Mostrar formulario de recuperación de contraseña
+  if (linkForgotPassword) {
+    linkForgotPassword.addEventListener("click", (e) => {
+      e.preventDefault();
+      formUserLogin.classList.add("d-none");
+      formUserRecovery.classList.remove("d-none");
+    });
+  }
+
+  // Volver al login desde recuperación
+  if (btnBackToLogin) {
+    btnBackToLogin.addEventListener("click", () => {
+      formUserRecovery.classList.add("d-none");
+      formUserLogin.classList.remove("d-none");
+    });
+  }
+
+  // Enviar correo de recuperación
+  if (formUserRecovery) {
+    formUserRecovery.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = recoveryEmail.value.trim().toLowerCase();
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { error } = await client.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + window.location.pathname
+          });
+          if (error) throw error;
+          alert("¡Enlace enviado! Revisa tu correo (bandeja de entrada y correo no deseado/spam) para restablecer tu contraseña.");
+          formUserRecovery.classList.add("d-none");
+          formUserLogin.classList.remove("d-none");
+        } catch (err) {
+          alert("Error al enviar enlace: " + err.message);
+        }
+      }
+    });
+  }
+
+  // Guardar nueva contraseña
+  if (formUserResetPassword) {
+    formUserResetPassword.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newPassword = resetNewPassword.value;
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { error } = await client.auth.updateUser({ password: newPassword });
+          if (error) throw error;
+          alert("¡Contraseña actualizada con éxito! Ya puedes iniciar sesión con tu nueva contraseña.");
+          formUserResetPassword.classList.add("d-none");
+          formUserLogin.classList.remove("d-none");
+        } catch (err) {
+          alert("Error al actualizar contraseña: " + err.message);
+        }
+      }
     });
   }
 }
